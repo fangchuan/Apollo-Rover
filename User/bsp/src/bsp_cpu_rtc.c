@@ -2,7 +2,7 @@
 *********************************************************************************************************
 *
 *	模块名称 : STM32内部RTC模块
-*	文件名称 : bsp_cpu_rtc.h
+*	文件名称 : bsp_cpu_rtc.c
 *	版    本 : V1.0
 *	说    明 : 头文件
 *
@@ -10,7 +10,7 @@
 *		版本号  日期       作者    说明
 *		v1.0    2015-08-08 armfly  首版.安富莱电子原创
 *
-*	Copyright (C), 2015-2016, 安富莱电子 www.armfly.com
+*	Copyright (C), 2015-2020, 阿波罗科技  www.apollorobot.cn
 *
 *********************************************************************************************************
 */
@@ -40,73 +40,67 @@ void bsp_InitRTC(void)
 {
      uint16_t u16_WaitForOscSource;
 
-	/*
-		我们在BKP的后备寄存器1中，存了一个特殊字符0xA5A5, 第一次上电或后备电源掉电后，该寄存器数据丢失，
-		表明RTC数据丢失，需要重新配置
-	*/
-    if (BKP_ReadBackupRegister(BKP_DR1) != 0xA5A5)
-    {
-		//重新配置RTC
-		/* Enable PWR and BKP clocks */  /* PWR时钟（电源控制）与BKP时钟（RTC后备寄存器）使能 */  
-		RCC_APB1PeriphClockCmd(RCC_APB1Periph_PWR | RCC_APB1Periph_BKP, ENABLE);
-		/* Allow access to BKP Domain */ /*使能RTC和后备寄存器访问 */  
-		PWR_BackupAccessCmd(ENABLE);
-		
-		/* Reset Backup Domain */  /* 将外设BKP的全部寄存器重设为缺省值 */   
-		BKP_DeInit();
-		/* Enable LSE */		
-		RCC_LSEConfig(RCC_LSE_ON);
-		
-		#if 0
-		for(u16_WaitForOscSource=0; u16_WaitForOscSource < 5000; u16_WaitForOscSource++)
+		/*
+			我们在BKP的后备寄存器1中，存了一个特殊字符0xA5A5, 第一次上电或后备电源掉电后，该寄存器数据丢失，
+			表明RTC数据丢失，需要重新配置
+		*/
+		 if (BKP_ReadBackupRegister(BKP_DR1) != 0xA5A5)
 		{
-			;
-		}
-		#endif
+			//重新配置RTC
+			/* Enable PWR and BKP clocks */  /* PWR时钟（电源控制）与BKP时钟（RTC后备寄存器）使能 */  
+			RCC_APB1PeriphClockCmd(RCC_APB1Periph_PWR | RCC_APB1Periph_BKP, ENABLE);
+			/* Allow access to BKP Domain */ /*使能RTC和后备寄存器访问 */  
+			PWR_BackupAccessCmd(ENABLE);
+			
+			/* Reset Backup Domain */  /* 将外设BKP的全部寄存器重设为缺省值 */   
+			BKP_DeInit();
+			/* Enable LSE */		
+			RCC_LSEConfig(RCC_LSE_ON);
+			
+			
+			/* Wait till LSE is ready */ /* 等待外部晶振震荡稳定输出 */  
+			while (RCC_GetFlagStatus(RCC_FLAG_LSERDY) == RESET);
+			
+			/* Select LSE as RTC Clock Source */ /*使用外部32.768KHz晶振作为RTC时钟 */ 
+			RCC_RTCCLKConfig(RCC_RTCCLKSource_LSE);
+			
+			/* Enable RTC Clock */
+			RCC_RTCCLKCmd(ENABLE);
+			/* Wait for RTC registers synchronization */
+			RTC_WaitForSynchro();
+			/* Wait until last write operation on RTC registers has finished */
+			RTC_WaitForLastTask();
+			/* Enable the RTC Second */
+			RTC_ITConfig(RTC_IT_SEC, ENABLE);
+			/* Wait until last write operation on RTC registers has finished */
+			RTC_WaitForLastTask();
+			
+		//	RTC_EnterConfigMode();
+			
+			/* Set RTC prescaler: set RTC period to 1sec */   
+			/* 32.768KHz晶振预分频值是32767,如果对精度要求很高可以修改此分频值来校准晶振 */ 
+			RTC_SetPrescaler(32767); /* RTC period = RTCCLK/RTC_PR = (32.768 KHz)/(32767+1) */
+			
+			/* Wait until last write operation on RTC registers has finished */
+			RTC_WaitForLastTask();
+			
+			RTC_WriteClock(2016, 8, 17, 0, 0, 0);//默认时间
 		
-		/* Wait till LSE is ready */ /* 等待外部晶振震荡稳定输出 */  
-		while (RCC_GetFlagStatus(RCC_FLAG_LSERDY) == RESET);
-		
-		/* Select LSE as RTC Clock Source */ /*使用外部32.768KHz晶振作为RTC时钟 */ 
-		RCC_RTCCLKConfig(RCC_RTCCLKSource_LSE);
-		
-		/* Enable RTC Clock */
-		RCC_RTCCLKCmd(ENABLE);
-		/* Wait for RTC registers synchronization */
-		RTC_WaitForSynchro();
-		/* Wait until last write operation on RTC registers has finished */
-		RTC_WaitForLastTask();
-		/* Enable the RTC Second */
-		RTC_ITConfig(RTC_IT_SEC, ENABLE);
-		/* Wait until last write operation on RTC registers has finished */
-		RTC_WaitForLastTask();
-		
-	//	RTC_EnterConfigMode();
-		
-		/* Set RTC prescaler: set RTC period to 1sec */   
-		/* 32.768KHz晶振预分频值是32767,如果对精度要求很高可以修改此分频值来校准晶振 */ 
-		RTC_SetPrescaler(32767); /* RTC period = RTCCLK/RTC_PR = (32.768 KHz)/(32767+1) */
-		
-		/* Wait until last write operation on RTC registers has finished */
-		RTC_WaitForLastTask();
-		
-		RTC_WriteClock(2015, 8, 8, 0, 0, 0);//默认时间
-		
-        /* 配置完成后，向后备寄存器中写特殊字符0xA5A5 */
-        BKP_WriteBackupRegister(BKP_DR1, 0xA5A5);
+      /* 配置完成后，向后备寄存器中写特殊字符0xA5A5 */
+      BKP_WriteBackupRegister(BKP_DR1, 0xA5A5);
     }
     else
-	{
-		/* 若后备寄存器没有掉电，则无需重新配置RTC */
-		RCC_APB1PeriphClockCmd(RCC_APB1Periph_PWR | RCC_APB1Periph_BKP, ENABLE);
-		
-		for (u16_WaitForOscSource = 0; u16_WaitForOscSource < 5000; u16_WaitForOscSource++)
 		{
-			;
-		}
+				/* 若后备寄存器没有掉电，则无需重新配置RTC */
+				RCC_APB1PeriphClockCmd(RCC_APB1Periph_PWR | RCC_APB1Periph_BKP, ENABLE);
+				
+				for (u16_WaitForOscSource = 0; u16_WaitForOscSource < 5000; u16_WaitForOscSource++)
+				{
+					;
+				}
         if (RCC_GetFlagStatus(RCC_FLAG_PORRST) != RESET)
         {
-			/* 上电复位 */
+						/* 上电复位 */
         }
         else if (RCC_GetFlagStatus(RCC_FLAG_PINRST) != RESET)
         {
@@ -117,12 +111,12 @@ void bsp_InitRTC(void)
         
 		//虽然RTC模块不需要重新配置，且掉电后依靠后备电池依然运行
         //但是每次上电后，还是要使能RTCCLK???????
-        //RCC_RTCCLKCmd(ENABLE);
+        RCC_RTCCLKCmd(ENABLE);
         //等待RTC时钟与APB1时钟同步
-        //RTC_WaitForSynchro();
+        RTC_WaitForSynchro();
         
         //使能秒中断
-        //RTC_ITConfig(RTC_IT_SEC, ENABLE);
+        RTC_ITConfig(RTC_IT_SEC, ENABLE);
         
         //等待操作完成
         RTC_WaitForLastTask();
@@ -387,4 +381,4 @@ uint8_t RTC_CalcWeek(uint16_t _year, uint8_t _mon, uint8_t _day)
 	return w;
 }
 
-/***************************** 安富莱电子 www.armfly.com (END OF FILE) *********************************/
+/***************************** 阿波罗科技 www.apollorobot.cn (END OF FILE) *********************************/

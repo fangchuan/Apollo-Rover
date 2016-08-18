@@ -58,8 +58,8 @@ static  void   App_Printf (CPU_CHAR *format, ...);
 */
 static  OS_SEM   SEM_MUTEX;	   //用于互斥
 static  OS_SEM   SEM_SYNCH;	   //用于同步
-static OS_TMR    Timer_10ms;
-
+static OS_TMR    Timer_500ms;
+static OS_TMR    Timer_1000ms;
 /*********************************************************************
 *
 *       Global data
@@ -73,12 +73,22 @@ extern _Motor _motor[MOTOR_MAX_NUM];
 *
 **********************************************************************
 */
-static void _cbOfTmr1(OS_TMR *p_tmr, void *p_arg)
+static void _cbOfTmr_500(OS_TMR *p_tmr, void *p_arg)
 {
     (void)p_arg;
 
 		bsp_LedToggle(1);
 		bsp_LedToggle(2);
+
+}
+static void _cbOfTmr_1000(OS_TMR *p_tmr, void *p_arg)
+{
+    (void)p_arg;
+
+//		LogEncoderData();
+//		LogGpsData();
+		LogMotorData();
+		LogRTCData();
 
 }
 /*
@@ -99,15 +109,25 @@ static  void  AppObjCreate (void)
   BSP_OS_SemCreate(&SEM_SYNCH, 0, (CPU_CHAR *)"SEM_SYNCH");
 	
 	//创建定时器  OS_CFG_TMR_TASK_RATE_HZ = 100HZ
-  OSTmrCreate ((OS_TMR              *)&Timer_10ms,
+  OSTmrCreate ((OS_TMR              *)&Timer_500ms,
               (CPU_CHAR            *)"MyTimer 500ms",
               (OS_TICK              )0,                  //第一次延时设置为0ms，
               (OS_TICK              )50,                  //定时器周期500ms
               (OS_OPT               )OS_OPT_TMR_PERIODIC,//模式设置为重复模式
-              (OS_TMR_CALLBACK_PTR  )_cbOfTmr1,          //回调函数
+              (OS_TMR_CALLBACK_PTR  )_cbOfTmr_500,          //回调函数
               (void                *)0,                  //参数设置为0
               (OS_ERR              *)err);
-	OSTmrStart(&Timer_10ms, (OS_ERR *)err);
+	OSTmrCreate ((OS_TMR              *)&Timer_1000ms,
+              (CPU_CHAR            *)"MyTimer 1000ms",
+              (OS_TICK              )0,                  //第一次延时设置为0ms，
+              (OS_TICK              )100,                  //定时器周期1000ms
+              (OS_OPT               )OS_OPT_TMR_PERIODIC,//模式设置为重复模式
+              (OS_TMR_CALLBACK_PTR  )_cbOfTmr_1000,          //回调函数
+              (void                *)0,                  //参数设置为0
+              (OS_ERR              *)err);
+							
+	OSTmrStart(&Timer_500ms, (OS_ERR *)err);
+	OSTmrStart(&Timer_1000ms, (OS_ERR *)err);
 }
 
 /*
@@ -269,8 +289,6 @@ static void AppTaskUserIF(void *p_arg)
 
 	while (1) 
 	{   		
-
-	
     BSP_OS_TimeDlyMs(1000);	     
 	}
 }
@@ -350,11 +368,11 @@ static void AppTaskMotorControl(void *p_arg)
 {	
 	(void)p_arg;
 	 
-
+		Motor_1_Forward();
+		Motor_2_Forward();
 	while(1)
 	{
-	Motor_1_Forward();
-	Motor_2_Forward();
+
 		BSP_OS_TimeDlyMs(10);
 	} 						  	 	       											   
 }

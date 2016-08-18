@@ -377,6 +377,10 @@ void DispMotorData(void)
 		printf("LeftSpeed:%d\n", (int)_motor[MOTOR_LEFT].cur_speed);
 //		printf("LeftAngle:%d\n", (int)_motor[MOTOR_LEFT].cur_angle);
 //		printf("RightAngle:%d\n", (int)_motor[MOTOR_RIGHT].cur_angle);
+//	printf("LeftDistance:%d\n", (int)_motor[MOTOR_LEFT].distances);
+//	printf("RightDistance:%d\n", (int)_motor[MOTOR_RIGHT].distances);
+//	printf("LeftOut:%d\n", (int)_motor[MOTOR_LEFT].out);
+//	printf("RightOut:%d\n", (int)_motor[MOTOR_RIGHT].out);
 
 }	
 

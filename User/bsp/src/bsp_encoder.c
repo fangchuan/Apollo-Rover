@@ -75,6 +75,8 @@ void ENC_Data_Init(void)
 {
 		_encoder.tim[MOTOR_LEFT] = ENCODER_LEFT_TIMER;
 		_encoder.tim[MOTOR_RIGHT] = ENCODER_RIGHT_TIMER;
+		_encoder.dis_count[MOTOR_LEFT] = 0;
+		_encoder.dis_count[MOTOR_RIGHT] = 0;
 		_encoder.rad_count[MOTOR_LEFT] = 0;
 		_encoder.rad_count[MOTOR_RIGHT] = 0;
 }
@@ -337,7 +339,6 @@ void TIM2_IRQHandler(void)
 
 		CPU_CRITICAL_ENTER();
 		OSIntEnter();
-		CPU_CRITICAL_EXIT();
 	
 		/* Clear the interrupt pending flag */
 		TIM_ClearFlag(ENCODER_LEFT_TIMER, TIM_FLAG_Update);
@@ -352,7 +353,8 @@ void TIM2_IRQHandler(void)
 		}
 
 		_encoder.rad_count[MOTOR_LEFT] ++;
-	
+		
+		CPU_CRITICAL_EXIT();
 		OSIntExit();
 }
 /*******************************************************************************
@@ -369,7 +371,6 @@ void TIM4_IRQHandler(void)
 
 		CPU_CRITICAL_ENTER();
 		OSIntEnter();
-		CPU_CRITICAL_EXIT();
 
 		/* Clear the interrupt pending flag */
 		TIM_ClearFlag(ENCODER_RIGHT_TIMER, TIM_FLAG_Update);
@@ -382,8 +383,9 @@ void TIM4_IRQHandler(void)
 		{
 				_encoder.dis_count[MOTOR_RIGHT] --;
 		}
-			_encoder.rad_count[MOTOR_RIGHT] ++;
+		_encoder.rad_count[MOTOR_RIGHT] ++;
 		
+		CPU_CRITICAL_EXIT();
 		OSIntExit();
 }
 /*******************************************************************************
@@ -399,8 +401,8 @@ void CalcMotorSpeedAndAngle(void)
 		u8   i;
 	  for(i = 0; i< MOTOR_MAX_NUM; i++)
 		{
-			_motor[i].cur_speed = ENC_Calc_Average_Speed(i) * MOTOR_DIAMETER * M_PI;			
-			_motor[i].cur_angle = ENC_Get_Motor_Angle(i);
+			_motor[i].cur_speed = (float)ENC_Calc_Average_Speed(i) * MOTOR_DIAMETER * M_PI;			
+			_motor[i].cur_angle = (float)ENC_Get_Motor_Angle(i);
 		}
 }
 /*******************************************************************************

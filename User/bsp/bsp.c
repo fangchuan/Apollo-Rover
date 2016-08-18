@@ -24,10 +24,7 @@
 *
 **********************************************************************
 */
-FATFS fs;
-FRESULT result;
-FIL file;
-UINT bw;
+
 
 /*
 *********************************************************************************************************
@@ -57,17 +54,12 @@ void bsp_Init(void)
 //	bsp_InitSPIBus();	   /* 配置SPI总线 */
 	bsp_MotorInit();
 	bsp_ENCInit();
+	bsp_InitRTC();
+	
+	bsp_SDLogInit();
 	my_mem_init(SRAMIN);
 	
-	/* SD挂载文件系统 */
-	result = f_mount(&fs, FS_VOLUME_SD, 1);
-	
-	if( result == FR_NO_FILESYSTEM )//如果该磁盘没有被格式化为FatFS，则格式化它
-  {
-        result = f_mkfs(FS_VOLUME_SD, 0, 4096); //格式化方式为FDISK,建立分区表，4096为每个簇的大小
-        result = f_mount(&fs, FS_VOLUME_SD, 0);
-        result = f_mount(&fs, FS_VOLUME_SD, 1);
-  }
+
 	
 
 }
