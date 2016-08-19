@@ -13,17 +13,20 @@
 *
 *********************************************************************************************************
 */
-#include "velocity_controller.h"
-#include "pid.h"
 #include "common.h"
+#include "pid.h"
+#include "velocity_controller.h"
 
 
-PidObject  pidVelocity;
+
+PidObject  pidVelocityLeftMotor;
+PidObject  pidVelocityRightMotor;
 int16_t    velOutput;
+
 
 extern _Motor _motor[MOTOR_MAX_NUM];
 
-static bool isInit;
+static bool isInit = false;
 /*********************************************************************************************************
 *	函 数 名: velocityControllerInit
 *	功能说明: 速度控制器参数初始化;
@@ -37,8 +40,11 @@ void  velocityControllerInit(void)
 		if(isInit)
 			return;
 
-		pidInit(&pidVelocity, 0, PID_VELOCITY_KP, PID_VELOCITY_KI, PID_VELOCITY_KD, VELOCITY_UPDATE_DT);
-		pidSetIntegralLimit(&pidVelocity, PID_VELOCITY_INTEGRATION_LIMIT);
+		pidInit(&pidVelocityLeftMotor, 0, PID_VELOCITY_KP, PID_VELOCITY_KI, PID_VELOCITY_KD, VELOCITY_UPDATE_DT);
+		pidSetIntegralLimit(&pidVelocityLeftMotor, PID_VELOCITY_INTEGRATION_LIMIT);
+		
+		pidInit(&pidVelocityRightMotor, 0, PID_VELOCITY_KP, PID_VELOCITY_KI, PID_VELOCITY_KD, VELOCITY_UPDATE_DT);
+		pidSetIntegralLimit(&pidVelocityRightMotor, PID_VELOCITY_INTEGRATION_LIMIT);
 
 		isInit = true;
 }
@@ -60,13 +66,31 @@ bool velocityControllerTest(void)
 *	返 回 值: 
 *********************************************************************************************************
 */
-int16_t VelocityCorrectPID(float VelocityActual, float VelocityDesired)
+int16_t VelocityCorrectPID(PidObject* VelocityPid, const float VelocityActual, float VelocityDesired)
 {
 		float pid;
-		pidSetDesired(&pidVelocity, VelocityDesired);
-		pid = pidUpdate(&pidVelocity, VelocityActual, true);
+		pidSetDesired(VelocityPid, VelocityDesired);
+		pid = pidUpdate(VelocityPid, VelocityActual, true);
 		velOutput = constrain(pid, -VELOCITY_CONTROLLER_OUT_MAX, VELOCITY_CONTROLLER_OUT_MAX);
+
 		return velOutput;
 }
-
+/*********************************************************************************************************
+*	函 数 名: VelocityCorrectPID
+*	功能说明: 速度环PID控制器
+*	形    参：实际速度、期望速度
+*	返 回 值: 
+*********************************************************************************************************
+*/
+int16_t VelocityController(uint8_t motor_id, const float VelocityActual, float VelocityDesired)
+{
+		if(motor_id == MOTOR_LEFT)
+		{
+			return VelocityCorrectPID(&pidVelocityLeftMotor,VelocityActual, VelocityDesired);
+		}
+		else
+		{
+			return VelocityCorrectPID(&pidVelocityRightMotor,VelocityActual, VelocityDesired);
+		}
+}
 /***************************** 阿波罗科技 www.apollorobot.cn (END OF FILE) *********************************/

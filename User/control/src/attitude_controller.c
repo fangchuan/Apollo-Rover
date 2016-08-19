@@ -103,7 +103,7 @@ bool attitudeControllerTest()
 *	返 回 值: 
 *********************************************************************************************************
 */
-void RollCorrectRatePID(float rollRateActual, float rollRateDesired)
+void RollCorrectRatePID(const float rollRateActual, float rollRateDesired)
 {
 		float pid;
 		pidSetDesired(&pidRollRate, rollRateDesired);
@@ -117,7 +117,7 @@ void RollCorrectRatePID(float rollRateActual, float rollRateDesired)
 *	返 回 值: 
 *********************************************************************************************************
 */
-void PitchCorrectRatePID(float pitchRateActual, float pitchRateDesired)
+void PitchCorrectRatePID(const float pitchRateActual, float pitchRateDesired)
 {
 		float pid;
 		pidSetDesired(&pidPitchRate, pitchRateDesired);
@@ -131,7 +131,7 @@ void PitchCorrectRatePID(float pitchRateActual, float pitchRateDesired)
 *	返 回 值: 
 *********************************************************************************************************
 */
-void YawCorrectRatePID(float yawRateActual, float yawRateDesired)
+void YawCorrectRatePID(const float yawRateActual, float yawRateDesired)
 {
 	  float pid;
 		pidSetDesired(&pidYawRate, yawRateDesired);
@@ -145,7 +145,7 @@ void YawCorrectRatePID(float yawRateActual, float yawRateDesired)
 *	返 回 值: 
 *********************************************************************************************************
 */
-void RollCorrectAttitudePID(float eulerRollActual, float eulerRollDesired, float* rollRateDesired)
+void RollCorrectAttitudePID(const float eulerRollActual, float eulerRollDesired, float* rollRateDesired)
 {	
 		// Update PID for roll axis
 		pidSetDesired(&pidRoll, eulerRollDesired);
@@ -159,7 +159,7 @@ void RollCorrectAttitudePID(float eulerRollActual, float eulerRollDesired, float
 *	返 回 值: 
 *********************************************************************************************************
 */
-void PitchCorrectAttitudePID(float eulerPitchActual, float eulerPitchDesired, float* pitchRateDesired)
+void PitchCorrectAttitudePID(const float eulerPitchActual, float eulerPitchDesired, float* pitchRateDesired)
 {
 
 		// Update PID for pitch axis
@@ -174,7 +174,7 @@ void PitchCorrectAttitudePID(float eulerPitchActual, float eulerPitchDesired, fl
 *	返 回 值: 
 *********************************************************************************************************
 */
-void YawCorrectAttitudePID(float eulerYawActual, float eulerYawDesired, float* yawRateDesired)
+void YawCorrectAttitudePID(const float eulerYawActual, float eulerYawDesired, float* yawRateDesired)
 {
 		float yawError;
 	

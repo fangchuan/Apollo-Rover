@@ -88,7 +88,8 @@ static void _cbOfTmr_1000(OS_TMR *p_tmr, void *p_arg)
 //		LogEncoderData();
 //		LogGpsData();
 		LogMotorData();
-		LogRTCData();
+//		LogRTCData();
+//		LogMpu9150Data();
 
 }
 /*
@@ -324,8 +325,6 @@ static void AppTaskGPS(void *p_arg)
 static void AppTaskSensorUpdate(void *p_arg)
 {	
 	 int8_t result;
-	
-	 CPU_SR_ALLOC();
 	 (void)p_arg;
 
 #if  AHRS_USE_DMP
@@ -342,15 +341,13 @@ static void AppTaskSensorUpdate(void *p_arg)
 	 
 	while(1)
 	{
-		CPU_CRITICAL_ENTER();
+		
 #if  AHRS_USE_DMP
 		dmp_update_euler();
 #else
 		ahrs_update_euler();
 #endif
-		//每10ms计算一次车轮的平均速度
-		CalcMotorSpeedAndAngle();
-		CPU_CRITICAL_EXIT();
+
 		BSP_OS_TimeDlyMs(10);
 	} 						  	 	       											   
 }
@@ -370,9 +367,12 @@ static void AppTaskMotorControl(void *p_arg)
 	 
 		Motor_1_Forward();
 		Motor_2_Forward();
+	ArRoverInit();
 	while(1)
 	{
-
+		//每10ms计算一次车轮的平均速度
+//		CalcMotorSpeedAndAngle();
+		ArRoverLoop();
 		BSP_OS_TimeDlyMs(10);
 	} 						  	 	       											   
 }

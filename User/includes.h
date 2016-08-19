@@ -73,6 +73,7 @@
 #include  "bsp_os.h"
 #include  "ahrs.h"
 #include  "malloc.h"
+#include  "ApolloRobotRover.h"
 /*
 *********************************************************************************************************
 *                                        Data Structure/Common API/Macro define

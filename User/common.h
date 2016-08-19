@@ -37,7 +37,7 @@
 #define  FRAME_CONFIG       ROVER_FRAME
 
 #define  APOLLOROBOT_LOG    "log.txt"
-
+#define  DEBUG_PID          0
 //#define  USE_EXTERN_SRAM
 
 //常用宏定义
@@ -83,6 +83,8 @@
 #define  SD_SDIO_SUB_PRIORITY   1
 #define  SD_DMA2_PRE_PRIORITY   1
 #define  SD_DMA2_SUB_PRIORITY   2
+#define  RECEIVER_PRE_PRIORITY  2
+#define  RECEIVER_SUB_PRIORITY  0
 //
 #define  MOTOR_MAX_NUM   2
 #define  MOTOR_LEFT      0
@@ -128,12 +130,15 @@ typedef struct _Position{
 }_Position;
 
 typedef struct _Motor{
-				float cur_angle;
-				float tar_angle;
-				float cur_speed;
-				float tar_speed;
-				float distances;
-				float out;
+			volatile	float cur_angle;
+			volatile 	float tar_angle;
+			volatile	float cur_speed;
+			volatile	float tar_speed;
+			volatile	float distances;
+			volatile 	float vel_pid_out;
+			volatile  float yaw_pid_out;
+			volatile  float pos_pid_out;
+			volatile  float out;
 	
 }_Motor;
 
@@ -149,6 +154,12 @@ typedef struct _Car{
 	
 }_car;
 
+typedef struct {
+				unsigned short  ch1_val;
+				unsigned short  ch2_val;
+				unsigned short  ch3_val;
+				unsigned short  ch4_val;
+}_RemoteControl;
 /*********************************************************************
 *
 *       Public Function 

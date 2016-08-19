@@ -1,10 +1,10 @@
 /*
 *********************************************************************************************************
 *
-*	模块名称 : 日志输出模块
-*	文件名称 : log.h
+*	模块名称 : RC遥控接收模块
+*	文件名称 : RemoteControl.h
 *	版    本 : V1.0
-*	说    明 : 
+*	说    明 : 天地飞8通接收机，输出PWM波
 *	修改记录 :
 *		版本号  日期        作者     说明
 *		V1.0    2016-07-21 方川  正式发布
@@ -13,22 +13,15 @@
 *
 *********************************************************************************************************
 */
-#ifndef __LOG_H
-#define __LOG_H
+#ifndef  __REMOTE_CONTROL_H
+#define  __REMOTE_CONTROL_H
 
-#include "stdint.h"
-#include "stdbool.h"
-#include "string.h"
-#include "stdio.h"
 #include "stm32f10x.h"
 
-/* Exported functions ------------------------------------------------------- */
-extern void  bsp_SDLogInit(void);
-extern void  LogTest(void);
-extern void  LogEncoderData(void* enc);
-extern void  LogGpsData(void* gps);
-extern void  LogMotorData(void);
-extern void  LogRTCData(void);
-extern void  LogMpu9150Data(void);
-#endif /*LOG_H*/
+/********************Export Functions***********************************/
+
+extern void  bsp_ReceiverInit(void);
+extern void  RcDataInit(void);
+extern void  GetRCValue(void);
+#endif
 /***************************** 阿波罗科技 www.apollorobot.cn (END OF FILE) *********************************/

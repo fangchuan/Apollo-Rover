@@ -108,52 +108,6 @@ static unsigned short inv_orientation_matrix_to_scalar(
 
     return scalar;
 }
-
-/* Handle sensor on/off combinations. */
-static void setup_gyro(void)
-{
-    unsigned char mask = 0;
-    if (hal.sensors & ACCEL_ON)
-        mask |= INV_XYZ_ACCEL;
-    if (hal.sensors & GYRO_ON)
-        mask |= INV_XYZ_GYRO;
-    /* If you need a power transition, this function should be called with a
-     * mask of the sensors still enabled. The driver turns off any sensors
-     * excluded from this mask.
-     */
-    mpu_set_sensors(mask);
-    if (!hal.dmp_on)
-        mpu_configure_fifo(mask);
-}
-
-static  void run_self_test(void)
-{
-    int result;
-    long gyro[3], accel[3];
-
-    result = mpu_run_self_test(gyro, accel);
-    if (result == 0x7) {
-        /* Test passed. We can trust the gyro data here, so let's push it down
-         * to the DMP.
-         */
-        float sens;
-        unsigned short accel_sens;
-        mpu_get_gyro_sens(&sens);
-        gyro[0] = (long)(gyro[0] * sens);
-        gyro[1] = (long)(gyro[1] * sens);
-        gyro[2] = (long)(gyro[2] * sens);
-        dmp_set_gyro_bias(gyro);
-        mpu_get_accel_sens(&accel_sens);
-        accel[0] *= accel_sens;
-        accel[1] *= accel_sens;
-        accel[2] *= accel_sens;
-        dmp_set_accel_bias(accel);
-    }
-
-
-}
-
-
 /* Every time new gyro data is available, this function is called in an
  * ISR context. In this example, it sets a flag protecting the FIFO read
  * function.

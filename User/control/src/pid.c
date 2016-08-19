@@ -14,6 +14,10 @@
 *********************************************************************************************************
 */
 #include "pid.h"
+#include "common.h"
+#if  DEBUG_PID
+#include "stdio.h"
+#endif
 /*********************************************************************************************************
 *	函 数 名: pidInit
 *	功能说明: PID参数初始化
@@ -50,8 +54,11 @@ float pidUpdate(PidObject* pid, const float measured, const bool updateError)
     if (updateError)
     {
         pid->error = pid->desired - measured;
+				#if  DEBUG_PID
+				printf("pid_error:%d\n", (int)pid->error);
+				#endif
     }
-
+		
     pid->integ += pid->error * pid->dt;
     if (pid->integ > pid->iLimit)
     {
@@ -67,9 +74,13 @@ float pidUpdate(PidObject* pid, const float measured, const bool updateError)
     pid->outP = pid->kp * pid->error;
     pid->outI = pid->ki * pid->integ;
     pid->outD = pid->kd * pid->deriv;
-
+		#if  DEBUG_PID
+		printf("pid_outP:%d\n", (int)pid->outP);
+		#endif
     output = pid->outP + pid->outI + pid->outD;
-
+		#if  DEBUG_PID
+		printf("pid_output:%d\n", (int)output);
+		#endif
     pid->prevError = pid->error;
 
     return output;

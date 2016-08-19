@@ -84,7 +84,7 @@ void bsp_InitRTC(void)
 			/* Wait until last write operation on RTC registers has finished */
 			RTC_WaitForLastTask();
 			
-			RTC_WriteClock(2016, 8, 17, 0, 0, 0);//默认时间
+			RTC_WriteClock(2016, 8, 18, 12, 0, 0);//默认时间
 		
       /* 配置完成后，向后备寄存器中写特殊字符0xA5A5 */
       BKP_WriteBackupRegister(BKP_DR1, 0xA5A5);

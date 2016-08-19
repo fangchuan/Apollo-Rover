@@ -20,7 +20,7 @@
 
 
 
-
+/********************Export Functions***********************************/
 extern  void bsp_MotorInit(void);
 extern  void Motor_1_Forward(void);
 extern  void Motor_1_Reverse(void);
@@ -33,8 +33,8 @@ extern void Car_Backward(void);
 extern void Car_Left(void);
 extern void Car_Right(void);
 extern void Car_Stop(void);
-
-extern void Motor_Tuning(void* motor, uint8_t motor_id);
+extern void SetMotorDesiredSpeed(void *motor,int16_t desiredspeed);
+extern void SetMotorsPWM(void);
 extern void DispMotorData(void);
 
 #endif /*_BSP_MOTOR_H*/

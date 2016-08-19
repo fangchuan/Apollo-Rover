@@ -28,14 +28,16 @@
 #define RATE_CONTROLLER_RP_OUT_MAX    4500
 #define RATE_CONTROLLER_YAW_OUT_MAX   5000
 	
+/* Exported functions ------------------------------------------------------- */
+
 void attitudeControllerInit(void);
 bool attitudeControllerTest(void);
-void RollCorrectRatePID(float rollRateActual, float rollRateDesired);
-void PitchCorrectRatePID(float pitchRateActual, float pitchRateDesired);
-void YawCorrectRatePID(float yawRateActual, float yawRateDesired);
-void RollCorrectAttitudePID(float eulerRollActual, float eulerRollDesired, float* rollRateDesired);
-void PitchCorrectAttitudePID(float eulerPitchActual, float eulerPitchDesired, float* pitchRateDesired);
-void YawCorrectAttitudePID(float eulerYawActual, float eulerYawDesired, float* yawRateDesired);
+//void RollCorrectRatePID(float rollRateActual, float rollRateDesired);
+//void PitchCorrectRatePID(float pitchRateActual, float pitchRateDesired);
+//void YawCorrectRatePID(float yawRateActual, float yawRateDesired);
+//void RollCorrectAttitudePID(float eulerRollActual, float eulerRollDesired, float* rollRateDesired);
+//void PitchCorrectAttitudePID(float eulerPitchActual, float eulerPitchDesired, float* pitchRateDesired);
+//void YawCorrectAttitudePID(float eulerYawActual, float eulerYawDesired, float* yawRateDesired);
 int16_t RollStabilizer(void);
 int16_t PitchStabilizer(void);
 int16_t YawStabilizer(void);

@@ -19,15 +19,15 @@
 #include "stdint.h"
 #include "stdbool.h"
 
-#define VELOCITY_UPDATE_FREQ  			100
+#define VELOCITY_UPDATE_FREQ  			33
 #define VELOCITY_UPDATE_DT   				(float)(1.0/VELOCITY_UPDATE_FREQ)
 #define VELOCITY_CONTROLLER_OUT_MAX   750
 #define VELOCITY_CONTROLLER_OUT_MIN   -750
 
-void  velocityControllerInit(void);
-bool  velocityControllerTest(void);
-int16_t VelocityCorrectPID(float VelocityActual, float VelocityDesired);
-
+/* Exported functions ------------------------------------------------------- */
+extern void  velocityControllerInit(void);
+extern bool  velocityControllerTest(void);
+extern int16_t VelocityController(uint8_t motor_id, const float VelocityActual, float VelocityDesired);
 
 #endif
 /***************************** °¢²¨ÂÞ¿Æ¼¼ www.apollorobot.cn (END OF FILE) *********************************/

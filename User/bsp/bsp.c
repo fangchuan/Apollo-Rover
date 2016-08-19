@@ -54,12 +54,10 @@ void bsp_Init(void)
 //	bsp_InitSPIBus();	   /* ≈‰÷√SPI◊‹œﬂ */
 	bsp_MotorInit();
 	bsp_ENCInit();
-	bsp_InitRTC();
+//	bsp_InitRTC();
 	
 	bsp_SDLogInit();
 	my_mem_init(SRAMIN);
-	
-
 	
 
 }
