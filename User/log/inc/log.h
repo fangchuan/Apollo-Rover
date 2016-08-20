@@ -30,5 +30,6 @@ extern void  LogGpsData(void* gps);
 extern void  LogMotorData(void);
 extern void  LogRTCData(void);
 extern void  LogMpu9150Data(void);
+extern void  LogRcData(void);
 #endif /*LOG_H*/
 /***************************** °¢²¨ÂÞ¿Æ¼¼ www.apollorobot.cn (END OF FILE) *********************************/

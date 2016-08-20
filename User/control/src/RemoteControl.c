@@ -40,6 +40,17 @@
 #define  Channel2     2
 #define  Channel3     3
 #define  Channel4     4
+//the base value of rc data
+#define  RC_THROTTLE_BASE  1000
+#define  RC_THROTTLE_MIN   0
+#define  RC_THROTTLE_MAX   999
+
+#define  RC_RPY_BASE           1500
+#define  RC_RPY_DEADBAND       50
+#define  RC_RPY_MAX            500
+
+#define  MAX_YAW_RATE          180.0f/M_PI   //unit :deg/s
+#define  MAX_RP_ANGLE          45
 /*********************************************************************
 *
 *       Global var
@@ -148,20 +159,6 @@ static void ReceiverTIMInit(void)
 }
 /*
 *********************************************************************************************************
-*	函 数 名: bsp_ReceiverInit
-*	功能说明: 初始化接收机.
-*	形    参: 无
-*	返 回 值: 无
-*********************************************************************************************************
-*/
-void  bsp_ReceiverInit(void)
-{
-			ReceiverNvicConfiguration();
-	
-			ReceiverTIMInit();
-}
-/*
-*********************************************************************************************************
 *	函 数 名: RcDataInit
 *	功能说明: 初始化接收机数据.外部调用
 *	形    参: 无
@@ -175,6 +172,23 @@ void RcDataInit(void)
 		_rc.ch3_val = 0;
 		_rc.ch4_val = 0;
 }
+/*
+*********************************************************************************************************
+*	函 数 名: bsp_ReceiverInit
+*	功能说明: 初始化接收机.
+*	形    参: 无
+*	返 回 值: 无
+*********************************************************************************************************
+*/
+void  bsp_ReceiverInit(void)
+{
+			ReceiverNvicConfiguration();
+	
+			ReceiverTIMInit();
+	
+			RcDataInit();
+}
+
 /*
 *********************************************************************************************************
 *	函 数 名: ReceiverIRQHandler
@@ -301,18 +315,34 @@ void ReceiverIRQHandler(void)
 /*
 *********************************************************************************************************
 *	函 数 名: GetRCValue
-*	功能说明: 获取4个通道的输入值
+*	功能说明: 获取4个通道的输入值,并把它们线性化到对应角度或角速度
 *	形    参: 
 *	返 回 值:
 *********************************************************************************************************
 */
 void  GetRCValue(void)
-{
-			_rc.ch1_val = PWMInCh1;
-      _rc.ch2_val = PWMInCh2;
-			_rc.ch3_val = PWMInCh3;
-			_rc.ch4_val = PWMInCh4;
+{			//0~999
+		_rc.ch3_val = constrain(PWMInCh3 - RC_THROTTLE_BASE, RC_THROTTLE_MIN, RC_THROTTLE_MAX);
+		
+		_rc.ch1_val = MAX_RP_ANGLE * ScaleLinear((PWMInCh1 - RC_RPY_BASE), RC_RPY_MAX, RC_RPY_DEADBAND);
+		_rc.ch2_val = MAX_RP_ANGLE * ScaleLinear((PWMInCh2 - RC_RPY_BASE), RC_RPY_MAX, RC_RPY_DEADBAND);
+	//yaw rate : °/s
+		_rc.ch4_val = MAX_YAW_RATE * ScaleLinear(PWMInCh4 - RC_RPY_BASE, RC_RPY_MAX, RC_RPY_DEADBAND);
 	 
 }
+/*******************************************************************************
+* Function Name  : DispRcData
+* Description    : Display receiver Data
+* Input          : None
+* Output         : None
+* Return         : None
+*******************************************************************************/
+void DispRcData(void)
+{
+		printf("Channel1:%d\n", _rc.ch1_val);
+		printf("Channel2:%d\n", _rc.ch2_val);
+		printf("Channel3:%d\n", _rc.ch3_val);
+		printf("Channel4:%d\n", _rc.ch4_val);
 
+}	
 /***************************** 阿波罗科技 www.apollorobot.cn (END OF FILE) *********************************/

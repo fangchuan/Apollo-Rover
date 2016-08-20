@@ -30,26 +30,20 @@
 	
 /* Exported functions ------------------------------------------------------- */
 
-void attitudeControllerInit(void);
-bool attitudeControllerTest(void);
+extern void attitudeControllerInit(void);
+extern bool attitudeControllerTest(void);
+extern void SetDesiredAngle(float rollDesired, float pitchDesired, float yawDesired);
 //void RollCorrectRatePID(float rollRateActual, float rollRateDesired);
 //void PitchCorrectRatePID(float pitchRateActual, float pitchRateDesired);
 //void YawCorrectRatePID(float yawRateActual, float yawRateDesired);
 //void RollCorrectAttitudePID(float eulerRollActual, float eulerRollDesired, float* rollRateDesired);
 //void PitchCorrectAttitudePID(float eulerPitchActual, float eulerPitchDesired, float* pitchRateDesired);
 //void YawCorrectAttitudePID(float eulerYawActual, float eulerYawDesired, float* yawRateDesired);
-int16_t RollStabilizer(void);
-int16_t PitchStabilizer(void);
-int16_t YawStabilizer(void);
-/**
- * Reset controller roll, pitch and yaw PID's.
- */
-void attitudeControllerResetAllPID(void);
-
-/**
- * Get the actuator output.
- */
-void attitudeControllerGetActuatorOutput(int16_t* roll, int16_t* pitch, int16_t* yaw);
+extern int16_t RollStabilizer(void);
+extern int16_t PitchStabilizer(void);
+extern int16_t YawStabilizer(void);
+extern void attitudeControllerResetAllPID(void);
+extern void attitudeControllerGetActuatorOutput(int16_t* roll, int16_t* pitch, int16_t* yaw);
 
 
 #endif /* ATTITUDE_CONTROLLER_H_ */

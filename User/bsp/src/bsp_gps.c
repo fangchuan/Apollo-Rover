@@ -950,7 +950,7 @@ void gpsGPGLL(uint8_t *_ucaBuf, uint16_t _usLen)
 /*
 *********************************************************************************************************
 *	函 数 名: Analyze0183
-*	功能说明: 分析0183数据包, 只分析GPRMC和GPRMC数据包
+*	功能说明: 分析0183数据包, 只分析GPRMC和GPGGA数据包
 *	形    参:  _ucaBuf  收到的数据
 *			 _usLen    数据长度
 *	返 回 值: 无
@@ -964,12 +964,12 @@ void Analyze0183(uint8_t *_ucaBuf, uint16_t _usLen)
 		return;
 	}
 
-	if (memcmp(_ucaBuf, "GPGGA,", 6) == 0)
+	if (memcmp(_ucaBuf, "GPGGA,", 6) == 0)//for lon and lat and altitude data
 	{
 			gpsGPGGA(_ucaBuf, _usLen);
 	}
 	else
-	if (memcmp(_ucaBuf, "GPRMC,", 6) == 0)
+	if (memcmp(_ucaBuf, "GPRMC,", 6) == 0)//for lon and lat and velocity data
 	{
 			gpsGPRMC(_ucaBuf, _usLen);
 	}
@@ -978,11 +978,11 @@ void Analyze0183(uint8_t *_ucaBuf, uint16_t _usLen)
 //		{
 //			gpsGPGSA(_ucaBuf, _usLen);
 //		}
-//	else 
-//		if (memcmp(_ucaBuf, "GPGSV,", 6) == 0)
-//		{
-//			gpsGPGSV(_ucaBuf, _usLen);
-//		}
+	else 
+		if (memcmp(_ucaBuf, "GPGSV,", 6) == 0)//for Satellites in View
+		{
+			gpsGPGSV(_ucaBuf, _usLen);
+		}
 //	else 
 //		if (memcmp(_ucaBuf, "GPRMC,", 6) == 0)
 //		{
@@ -1322,55 +1322,63 @@ void DispGPSStatus(void)
 {
 	char buf[128];
 
-	/* 纬度 */
-	if (g_tGPS.NS == 'S')
+	sprintf(buf, "搜星颗数%d\n", g_tGPS.ViewNumber);
+	printf(buf);
+	
+	if(g_tGPS.PositionOk)
 	{
-		sprintf(buf, "南纬 %02d°%02d.%04d'=%02d.%06d°", g_tGPS.WeiDu_Du,
-			g_tGPS.WeiDu_Fen / 10000, g_tGPS.WeiDu_Fen % 10000,
-			g_tGPS.WeiDu_Du, gps_FenToDu(g_tGPS.WeiDu_Fen));
+		/* 纬度 */
+		if (g_tGPS.NS == 'S')
+		{
+			sprintf(buf, "南纬 %02d°%02d.%04d'=%02d.%06d°", g_tGPS.WeiDu_Du,
+				g_tGPS.WeiDu_Fen / 10000, g_tGPS.WeiDu_Fen % 10000,
+				g_tGPS.WeiDu_Du, gps_FenToDu(g_tGPS.WeiDu_Fen));
 
-		sprintf(&buf[strlen(buf)], "=%02d°%02d'%02d\"", g_tGPS.WeiDu_Du,
-			g_tGPS.WeiDu_Fen / 10000, gps_FenToMiao(g_tGPS.WeiDu_Fen));
+			sprintf(&buf[strlen(buf)], "=%02d°%02d'%02d\"", g_tGPS.WeiDu_Du,
+				g_tGPS.WeiDu_Fen / 10000, gps_FenToMiao(g_tGPS.WeiDu_Fen));
+		}
+		else
+		{
+			sprintf(buf, "北纬 %02d°%02d.%04d'=%02d.%06d°", g_tGPS.WeiDu_Du,
+				g_tGPS.WeiDu_Fen / 10000, g_tGPS.WeiDu_Fen % 10000,
+				g_tGPS.WeiDu_Du, gps_FenToDu(g_tGPS.WeiDu_Fen));
+
+			sprintf(&buf[strlen(buf)], "=%02d°%02d'%02d\"", g_tGPS.WeiDu_Du,
+				g_tGPS.WeiDu_Fen / 10000, gps_FenToMiao(g_tGPS.WeiDu_Fen));
+		}
+		printf(buf);
+
+		/* 经度 */
+		if (g_tGPS.EW == 'E')
+		{
+			sprintf(buf, "  东经 %03d°%02d.%04d'=%03d.%06d°", g_tGPS.JingDu_Du,
+				g_tGPS.JingDu_Fen / 10000, g_tGPS.JingDu_Fen % 10000,
+				g_tGPS.JingDu_Du, gps_FenToDu(g_tGPS.JingDu_Fen));
+
+			sprintf(&buf[strlen(buf)], "=%03d°%02d'%02d\"", g_tGPS.JingDu_Du,
+				g_tGPS.JingDu_Fen / 10000, gps_FenToMiao(g_tGPS.JingDu_Fen));
+		}
+		else
+		{
+			sprintf(buf, "  西经 %03d°%02d.%04d'=%03d.%06d°", g_tGPS.JingDu_Du,
+				g_tGPS.JingDu_Fen / 10000, g_tGPS.JingDu_Fen % 10000,
+				g_tGPS.JingDu_Du, gps_FenToDu(g_tGPS.JingDu_Fen));
+
+			sprintf(&buf[strlen(buf)], "=%03d°%02d'%02d\"", g_tGPS.JingDu_Du,
+				g_tGPS.JingDu_Fen / 10000, gps_FenToMiao(g_tGPS.JingDu_Fen));
+		}
+		printf(buf);
+		printf("\n");
+		/* 速度 */
+		sprintf(buf, "  速度 = %5d.%d Knots", g_tGPS.SpeedKnots / 10, g_tGPS.SpeedKnots % 10);
+		printf(buf);
+		printf("\n");
+		/* 海拔 */
+		sprintf(buf, "  海拔 = %5d.%d M", g_tGPS.Altitude / 10, g_tGPS.Altitude % 10);
+		printf(buf);
 	}
 	else
-	{
-		sprintf(buf, "北纬 %02d°%02d.%04d'=%02d.%06d°", g_tGPS.WeiDu_Du,
-			g_tGPS.WeiDu_Fen / 10000, g_tGPS.WeiDu_Fen % 10000,
-			g_tGPS.WeiDu_Du, gps_FenToDu(g_tGPS.WeiDu_Fen));
-
-		sprintf(&buf[strlen(buf)], "=%02d°%02d'%02d\"", g_tGPS.WeiDu_Du,
-			g_tGPS.WeiDu_Fen / 10000, gps_FenToMiao(g_tGPS.WeiDu_Fen));
-	}
-	printf(buf);
-
-	/* 经度 */
-	if (g_tGPS.EW == 'E')
-	{
-		sprintf(buf, "  东经 %03d°%02d.%04d'=%03d.%06d°", g_tGPS.JingDu_Du,
-			g_tGPS.JingDu_Fen / 10000, g_tGPS.JingDu_Fen % 10000,
-			g_tGPS.JingDu_Du, gps_FenToDu(g_tGPS.JingDu_Fen));
-
-		sprintf(&buf[strlen(buf)], "=%03d°%02d'%02d\"", g_tGPS.JingDu_Du,
-			g_tGPS.JingDu_Fen / 10000, gps_FenToMiao(g_tGPS.JingDu_Fen));
-	}
-	else
-	{
-		sprintf(buf, "  西经 %03d°%02d.%04d'=%03d.%06d°", g_tGPS.JingDu_Du,
-			g_tGPS.JingDu_Fen / 10000, g_tGPS.JingDu_Fen % 10000,
-			g_tGPS.JingDu_Du, gps_FenToDu(g_tGPS.JingDu_Fen));
-
-		sprintf(&buf[strlen(buf)], "=%03d°%02d'%02d\"", g_tGPS.JingDu_Du,
-			g_tGPS.JingDu_Fen / 10000, gps_FenToMiao(g_tGPS.JingDu_Fen));
-	}
-	printf(buf);
-	printf("\n");
-	/* 速度 */
-	sprintf(buf, "  速度 = %5d.%d Knots", g_tGPS.SpeedKnots / 10, g_tGPS.SpeedKnots % 10);
-	printf(buf);
-	printf("\n");
-	/* 海拔 */
-	sprintf(buf, "  海拔 = %5d.%d M", g_tGPS.Altitude / 10, g_tGPS.Altitude % 10);
-	printf(buf);
+		printf("无效定位!!!");
 
 	printf("\n");
 }

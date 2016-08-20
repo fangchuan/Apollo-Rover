@@ -33,7 +33,7 @@ extern void Car_Backward(void);
 extern void Car_Left(void);
 extern void Car_Right(void);
 extern void Car_Stop(void);
-extern void SetMotorDesiredSpeed(void *motor,int16_t desiredspeed);
+extern void SetMotorDesiredSpeed(void *motor,float desiredspeed);
 extern void SetMotorsPWM(void);
 extern void DispMotorData(void);
 

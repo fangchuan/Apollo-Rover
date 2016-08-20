@@ -23,8 +23,27 @@ float invSqrt(float x)
 		y = y * (1.5f - (halfx * y * y));
 		return y;
 }
+/*
+*********************************************************************************************************
+*	函 数 名: ScaleLinear
+*	功能说明: cut deadband, move linear
+*	形    参: x:输入值  x_end:最大区间  deadband:死区
+*	返 回 值: 线性比例化后的值
+*********************************************************************************************************
+*/
+float ScaleLinear(float x, float x_end, float deadband)
+{
+		if (x > deadband) {
+			return (x - deadband) / (x_end - deadband);
 
-
+		} else 
+				if (x < -deadband) {
+					return (x + deadband) / (x_end - deadband);
+				}
+				else {
+				return 0.0f;
+				}
+}
 
 
 

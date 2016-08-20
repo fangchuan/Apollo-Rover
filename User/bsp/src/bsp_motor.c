@@ -45,9 +45,13 @@
 #define  MOTOR_PWM_MAX      		1999
 #define  MOTOR_PWM_MID      		1250
 #define  MOTOR_PWM_MIN      		100
-#define  MOTOR_THROTTLE_MIN     110
+#define  MOTOR_THROTTLE_MIN     100
 #define  MOTOR_THROTTLE_MID  		500
 #define  MOTOR_THROTTLE_MAX     1000
+
+#define  MOTOR_SPEED_THRESHOLD  40
+#define  MOTOR_ON     1
+#define  MOTOR_OFF    0
 /*********************************************************************
 *
 *       Global var
@@ -182,7 +186,7 @@ void bsp_MotorInit(void)
 */
 void Motor_1_Forward(void)
 {
-	   MOTOR_Left_Out1 = MOTOR_PWM_MID;
+	   MOTOR_Left_Out1 = MOTOR_PWM_MAX;
 	   MOTOR_Left_Out2 = 0;
 }
 /*********************************************************************************************************
@@ -195,7 +199,7 @@ void Motor_1_Forward(void)
 void Motor_1_Reverse(void)
 {
 	   MOTOR_Left_Out1 = 0;
-	   MOTOR_Left_Out2 = MOTOR_PWM_MID;
+	   MOTOR_Left_Out2 = MOTOR_PWM_MAX;
 }
 /*********************************************************************************************************
 *	函 数 名: MOTOR_1_Stop
@@ -218,7 +222,7 @@ void Motor_1_Stop(void)
 */
 void Motor_2_Forward(void)
 {
-	   MOTOR_Right_Out1 = MOTOR_PWM_MID;
+	   MOTOR_Right_Out1 = MOTOR_PWM_MAX;
 	   MOTOR_Right_Out2 = 0;
 }
 /*********************************************************************************************************
@@ -231,7 +235,7 @@ void Motor_2_Forward(void)
 void Motor_2_Reverse(void)
 {
 	   MOTOR_Right_Out1 = 0;
-	   MOTOR_Right_Out2 = MOTOR_PWM_MID;
+	   MOTOR_Right_Out2 = MOTOR_PWM_MAX;
 }
 /*********************************************************************************************************
 *	函 数 名: MOTOR_2_Stop
@@ -327,12 +331,19 @@ void Car_Stop(void)
 *	返 回 值: 
 *********************************************************************************************************
 */
-void SetMotorDesiredSpeed(void *motor, int16_t desiredspeed)
+void SetMotorDesiredSpeed(void *motor, float desiredspeed)
 {
 	   _Motor *m = motor;
 	   
-	   m->tar_speed = desiredspeed;
+		if(desiredspeed < MOTOR_SPEED_THRESHOLD ){
+			m->on_off = MOTOR_OFF;
+		}
+		else{
+			m->on_off = MOTOR_ON;
+	    m->tar_speed = desiredspeed;
+		}
 }
+
 /*********************************************************************************************************
 *	函 数 名: SetMotorsPWM
 *	功能说明: 电机控制
@@ -342,62 +353,74 @@ void SetMotorDesiredSpeed(void *motor, int16_t desiredspeed)
 */
 void SetMotorsPWM(void)
 {
-		static uint16_t pwm_left = MOTOR_THROTTLE_MAX;
-		static uint16_t pwm_right = MOTOR_THROTTLE_MAX;
+		static uint16_t pwm_left = MOTOR_THROTTLE_MIN;
+		static uint16_t pwm_right = MOTOR_THROTTLE_MIN;
 	
-		 if(_motor[MOTOR_LEFT].tar_speed > 0)
-		 { //get the total output
-			 _motor[MOTOR_LEFT].out = _motor[MOTOR_LEFT].vel_pid_out + _motor[MOTOR_LEFT].pos_pid_out - _motor[MOTOR_LEFT].yaw_pid_out;
-			 pwm_left += _motor[MOTOR_LEFT].out;
-			 
-			 MOTOR_Left_Out1 = constrain(pwm_left, MOTOR_PWM_MIN, MOTOR_PWM_MAX);
-			 MOTOR_Left_Out2 = 0;
-		 }
-		 else
-		 {	//correct the velocity pid output in logic when the motor is reverse
-			 if(_motor[MOTOR_LEFT].vel_pid_out < 0) 
-			 {
-				 _motor[MOTOR_LEFT].vel_pid_out = - _motor[MOTOR_LEFT].vel_pid_out;
+		if(_motor[MOTOR_LEFT].on_off){
+			 if(_motor[MOTOR_LEFT].tar_speed > 0)
+			 { //get the total output
+				 _motor[MOTOR_LEFT].out = _motor[MOTOR_LEFT].vel_pid_out - _motor[MOTOR_LEFT].yaw_pid_out;
+				 pwm_left += _motor[MOTOR_LEFT].out;
+				 
+				 MOTOR_Left_Out1 = constrain(pwm_left, MOTOR_PWM_MIN, MOTOR_PWM_MAX);
+				 MOTOR_Left_Out2 = 0;
 			 }
 			 else
-			 {
-				 if(_motor[MOTOR_LEFT].vel_pid_out > 0)
+			 {	//correct the velocity pid output in logic when the motor is reverse
+				 if(_motor[MOTOR_LEFT].vel_pid_out < 0) 
+				 {
 					 _motor[MOTOR_LEFT].vel_pid_out = - _motor[MOTOR_LEFT].vel_pid_out;
+				 }
+				 else
+				 {
+					 if(_motor[MOTOR_LEFT].vel_pid_out > 0)
+						 _motor[MOTOR_LEFT].vel_pid_out = - _motor[MOTOR_LEFT].vel_pid_out;
+				 }
+				 //get the total output
+				 _motor[MOTOR_LEFT].out = _motor[MOTOR_LEFT].vel_pid_out - _motor[MOTOR_LEFT].yaw_pid_out;
+				 pwm_left += _motor[MOTOR_LEFT].out;
+				 
+				 MOTOR_Left_Out2 = constrain(pwm_left, MOTOR_PWM_MIN, MOTOR_PWM_MAX);
+				 MOTOR_Left_Out1 = 0;
 			 }
-			 //get the total output
-			 _motor[MOTOR_LEFT].out = _motor[MOTOR_LEFT].vel_pid_out + _motor[MOTOR_LEFT].pos_pid_out - _motor[MOTOR_LEFT].yaw_pid_out;
-			 pwm_left += _motor[MOTOR_LEFT].out;
-			 
-			 MOTOR_Left_Out2 = constrain(pwm_left, MOTOR_PWM_MIN, MOTOR_PWM_MAX);
-			 MOTOR_Left_Out1 = 0;
-		 }
 
-		if(_motor[MOTOR_RIGHT].tar_speed > 0)
-		{  //get the total output
-			 _motor[MOTOR_RIGHT].out = _motor[MOTOR_RIGHT].vel_pid_out + _motor[MOTOR_RIGHT].pos_pid_out + _motor[MOTOR_RIGHT].yaw_pid_out;
-			 pwm_right += _motor[MOTOR_RIGHT].out;
-			
-			 MOTOR_Right_Out1 = constrain(pwm_right, MOTOR_PWM_MIN, MOTOR_PWM_MAX);
-			 MOTOR_Right_Out2 = 0;
 		}
-		else
-		{	 //correct the velocity pid output in logic when the motor is reverse
-			 if(_motor[MOTOR_RIGHT].vel_pid_out < 0)
-			 {
-				 _motor[MOTOR_RIGHT].vel_pid_out = - _motor[MOTOR_RIGHT].vel_pid_out;
-			 }
-			 else
-			 {
-				 if(_motor[MOTOR_RIGHT].vel_pid_out > 0)
+		else{//cut off the motor1
+			MOTOR_Left_Out1 = 0;
+			MOTOR_Left_Out2 = 0;
+		}
+		
+		if(_motor[MOTOR_RIGHT].on_off){
+			if(_motor[MOTOR_RIGHT].tar_speed > 0)
+			{  //get the total output
+				 _motor[MOTOR_RIGHT].out = _motor[MOTOR_RIGHT].vel_pid_out + _motor[MOTOR_RIGHT].yaw_pid_out;
+				 pwm_right += _motor[MOTOR_RIGHT].out;
+				
+				 MOTOR_Right_Out1 = constrain(pwm_right, MOTOR_PWM_MIN, MOTOR_PWM_MAX);
+				 MOTOR_Right_Out2 = 0;
+			}
+			else
+			{	 //correct the velocity pid output in logic when the motor is reverse
+				 if(_motor[MOTOR_RIGHT].vel_pid_out < 0)
+				 {
 					 _motor[MOTOR_RIGHT].vel_pid_out = - _motor[MOTOR_RIGHT].vel_pid_out;
-			 }
-			 //get the total output
-			 _motor[MOTOR_RIGHT].out = _motor[MOTOR_RIGHT].vel_pid_out + _motor[MOTOR_RIGHT].pos_pid_out + _motor[MOTOR_RIGHT].yaw_pid_out;
-			 pwm_right += _motor[MOTOR_RIGHT].out;
-			 
-			 MOTOR_Right_Out2 = constrain(pwm_right, MOTOR_PWM_MIN, MOTOR_PWM_MAX);
+				 }
+				 else
+				 {
+					 if(_motor[MOTOR_RIGHT].vel_pid_out > 0)
+						 _motor[MOTOR_RIGHT].vel_pid_out = - _motor[MOTOR_RIGHT].vel_pid_out;
+				 }
+				 //get the total output
+				 _motor[MOTOR_RIGHT].out = _motor[MOTOR_RIGHT].vel_pid_out + _motor[MOTOR_RIGHT].yaw_pid_out;
+				 pwm_right += _motor[MOTOR_RIGHT].out;
+				 
+				 MOTOR_Right_Out2 = constrain(pwm_right, MOTOR_PWM_MIN, MOTOR_PWM_MAX);
+				 MOTOR_Right_Out1 = 0;
+			}
+		}
+		else{//cut off the motor2
+			 MOTOR_Right_Out2 = 0;
 			 MOTOR_Right_Out1 = 0;
-
 		}
 		
 }
@@ -411,10 +434,10 @@ void SetMotorsPWM(void)
 void DispMotorData(void)
 {
 		printf("RightSpeed:%d\n", (int)_motor[MOTOR_RIGHT].cur_speed);
-//		printf("RightTarSpeed:%d\n",(int)_motor[MOTOR_RIGHT].tar_speed);
+		printf("RightTarSpeed:%d\n",(int)_motor[MOTOR_RIGHT].tar_speed);
 		printf("RightOut:%d\n", (int)_motor[MOTOR_RIGHT].out);
 		printf("LeftSpeed:%d\n", (int)_motor[MOTOR_LEFT].cur_speed);
-//		printf("LeftTarSpeed:%d\n", (int)_motor[MOTOR_LEFT].tar_speed);
+		printf("LeftTarSpeed:%d\n", (int)_motor[MOTOR_LEFT].tar_speed);
 	 	printf("LeftOut:%d\n", (int)_motor[MOTOR_LEFT].out);
 //		printf("LeftAngle:%d\n", (int)_motor[MOTOR_LEFT].cur_angle);
 //		printf("RightAngle:%d\n", (int)_motor[MOTOR_RIGHT].cur_angle);

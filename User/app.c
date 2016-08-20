@@ -271,6 +271,7 @@ static void AppTaskCOM(void *p_arg)
 //		DispEulerData();
 //		DispEncoderData();
 		DispMotorData();
+//		DispRcData();
 		BSP_OS_TimeDlyMs(100);
 	} 						  	 	       											   
 }
@@ -365,12 +366,11 @@ static void AppTaskMotorControl(void *p_arg)
 {	
 	(void)p_arg;
 	 
-		Motor_1_Forward();
-		Motor_2_Forward();
+//		Motor_1_Forward();
+//		Motor_2_Forward();
 	ArRoverInit();
 	while(1)
 	{
-		//每10ms计算一次车轮的平均速度
 //		CalcMotorSpeedAndAngle();
 		ArRoverLoop();
 		BSP_OS_TimeDlyMs(10);

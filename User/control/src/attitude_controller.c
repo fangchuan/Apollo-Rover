@@ -111,6 +111,19 @@ void RollCorrectRatePID(const float rollRateActual, float rollRateDesired)
 		rollOutput = constrain(pid, -RATE_CONTROLLER_RP_OUT_MAX, RATE_CONTROLLER_RP_OUT_MAX);
 }
 /*********************************************************************************************************
+*	函 数 名: SetDesiredAngle
+*	功能说明: 设置期望角度
+*	形    参：rollDesired期望横滚角,  pitchDesired期望俯仰角 ,yawDesired期望航向角
+*	返 回 值: 
+*********************************************************************************************************
+*/
+void SetDesiredAngle(float rollDesired, float pitchDesired, float yawDesired)
+{
+		angleDesired.x = rollDesired;
+	  angleDesired.y = pitchDesired;
+	  angleDesired.z = yawDesired;
+}
+/*********************************************************************************************************
 *	函 数 名: PitchCorrectRatePID
 *	功能说明: 角速度环PID控制器
 *	形    参：实际角速度、期望角速度

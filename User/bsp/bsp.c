@@ -55,6 +55,7 @@ void bsp_Init(void)
 	bsp_MotorInit();
 	bsp_ENCInit();
 //	bsp_InitRTC();
+	bsp_ReceiverInit();
 	
 	bsp_SDLogInit();
 	my_mem_init(SRAMIN);

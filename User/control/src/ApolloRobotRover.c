@@ -46,6 +46,9 @@
 */
 extern _Motor _motor[MOTOR_MAX_NUM];
 extern _RemoteControl  _rc;
+extern GPS_T g_tGPS;
+
+_Position _position;
 
 static bool IsRoverInit = false;
 /*********************************************************************************************************
@@ -85,7 +88,15 @@ bool TestArRoverInit(void)
 *********************************************************************************************************
 */
 void UpdateGps(void)
-{
+{		//trust the GPS data when the satellites inview more than 5
+	  if(g_tGPS.ViewNumber >= 5 && g_tGPS.PositionOk)
+			_position.isvalid = true;
+		
+		_position.lon = g_tGPS.JingDu_Du + gps_FenToDu(g_tGPS.JingDu_Fen )/1000000;
+		_position.ew = g_tGPS.EW;
+		_position.lat = g_tGPS.WeiDu_Du + gps_FenToDu(g_tGPS.WeiDu_Fen)/1000000;
+		_position.ns = g_tGPS.NS;
+		_position.altitude = g_tGPS.Altitude;
 }
 /*********************************************************************************************************
 *	函 数 名: UpdateAttitude
@@ -100,16 +111,23 @@ void UpdateAttitude(void)
 }
 /*********************************************************************************************************
 *	函 数 名: UpdateRC
-*	功能说明: 更新遥控器控制信息
+*	功能说明: 更新遥控器控制信息, 每通道0--999
 *	形    参：
 *	返 回 值: 
 *********************************************************************************************************
 */
 void UpdateRC(void)
 {
+	  float desired_speed = 0;
+	 //0--999
 		GetRCValue();
-	
-	
+	 //0-250
+		desired_speed = 0.25*_rc.ch3_val;
+		//set the desired speed
+		SetMotorDesiredSpeed(&_motor[MOTOR_LEFT], desired_speed);
+	  SetMotorDesiredSpeed(&_motor[MOTOR_RIGHT], desired_speed);
+		//set desired angle
+		SetDesiredAngle(_rc.ch1_val, _rc.ch2_val, _rc.ch3_val);
 }
 /*********************************************************************************************************
 *	函 数 名: UpdateController
@@ -122,10 +140,6 @@ void UpdateController(void)
 {
 	  static uint8_t  counts = 0;
 		float yaw_pid_out = 0;
-
-		//set the desired speed
-		SetMotorDesiredSpeed(&_motor[MOTOR_LEFT], 150);
-	  SetMotorDesiredSpeed(&_motor[MOTOR_RIGHT], 150);
 		
 		//run the attitude controller
 		yaw_pid_out = YawStabilizer();
@@ -144,7 +158,7 @@ void UpdateController(void)
 }
 /*********************************************************************************************************
 *	函 数 名: ArRoverLoop
-*	功能说明: 控制循环
+*	功能说明: 控制循环,应当被10ms执行一次
 *	形    参：
 *	返 回 值: 
 *********************************************************************************************************
@@ -154,6 +168,8 @@ void ArRoverLoop(void)
 		UpdateGps();
 	
 		UpdateAttitude();
+	
+		UpdateRC();
 	
 		//每10ms计算一次车轮的平均速度
 		CalcMotorSpeedAndAngle();

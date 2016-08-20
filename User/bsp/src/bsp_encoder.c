@@ -39,7 +39,7 @@
 #define TIMx_SUB_PRIORITY     ENCODER_SUB_PRIORITY
 
 #define ENCODER_MAX_NUM          2
-#define ENCODER_PPR     				858   // number of pulses per revolution
+#define ENCODER_PPR     				858//506   // number of pulses per revolution
 #define SPEED_BUFFER_SIZE 			8
 
 #define COUNTER_RESET   				(u16)0

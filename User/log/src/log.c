@@ -22,6 +22,7 @@
 #include "bsp_encoder.h"
 #include "bsp_motor.h"
 #include "bsp_cpu_rtc.h"
+#include "RemoteControl.h"
 /*********************************************************************
 *
 *       Global data
@@ -38,6 +39,7 @@ extern  _Motor   _motor[MOTOR_MAX_NUM];
 extern  GPS_T 			g_tGPS;
 extern  RTC_T g_tRTC;
 extern  _Euler   _euler;
+extern  _RemoteControl _rc;
 /*********************************************************************
 *
 *       Global data
@@ -235,6 +237,36 @@ void LogMpu9150Data(void)
 	
 	sprintf(text_buffer, "Roll: %d  Pitch: %d  Yaw: %d \r\n", 
 												(int)_euler.roll, (int)_euler.pitch, (int)_euler.yaw);
+		log_result = f_open(&log_file, APOLLOROBOT_LOG, FA_OPEN_ALWAYS | FA_READ | FA_WRITE);
+		if(log_result != FR_OK)
+			return ;
+		
+		log_result = f_lseek(&log_file, log_rows * sizeof(text_buffer));
+		log_rows ++;
+		if ( log_result == FR_OK )
+		{
+				log_result = f_write(&log_file, text_buffer, sizeof(text_buffer), &log_bw);
+			  if(log_result != FR_OK)
+					return ;
+				
+		}
+		f_close(&log_file);
+}
+
+/*
+*********************************************************************************************************
+*	函 数 名: LogRcData
+*	功能说明: 输出遥控器数据到日志
+*	形    参:  无
+*	返 回 值: 无
+*********************************************************************************************************
+*/
+void LogRcData(void)
+{
+	   GetRCValue();
+	
+		sprintf(text_buffer, "Channel1: %d   Channel2: %d   Channel3: %d   Channel4: %d\r\n", 
+												_rc.ch1_val, _rc.ch2_val, _rc.ch3_val, _rc.ch4_val);
 		log_result = f_open(&log_file, APOLLOROBOT_LOG, FA_OPEN_ALWAYS | FA_READ | FA_WRITE);
 		if(log_result != FR_OK)
 			return ;

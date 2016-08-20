@@ -23,5 +23,6 @@
 extern void  bsp_ReceiverInit(void);
 extern void  RcDataInit(void);
 extern void  GetRCValue(void);
+extern void  DispRcData(void);
 #endif
 /***************************** °¢²¨ÂÞ¿Æ¼¼ www.apollorobot.cn (END OF FILE) *********************************/

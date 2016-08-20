@@ -123,10 +123,13 @@ typedef struct _Euler{
 				float acc[3];
 }_Euler;
 
-typedef struct _Position{
+__packed typedef struct _Position{
+				unsigned char isvalid;
 				float lon;
+	      char ew;
 				float lat;
-				float height;
+	      char ns;
+				float altitude;
 }_Position;
 
 typedef struct _Motor{
@@ -137,8 +140,8 @@ typedef struct _Motor{
 			volatile	float distances;
 			volatile 	float vel_pid_out;
 			volatile  float yaw_pid_out;
-			volatile  float pos_pid_out;
 			volatile  float out;
+	    volatile  char  on_off;
 	
 }_Motor;
 
@@ -162,11 +165,11 @@ typedef struct {
 }_RemoteControl;
 /*********************************************************************
 *
-*       Public Function 
+*       Export Function 
 *
 **********************************************************************
 */
-float invSqrt(float x) ;
-
+extern float invSqrt(float x) ;
+extern float ScaleLinear(float x, float x_end, float deadband);
 #endif
 /***************************** °¢²¨ÂÞ¿Æ¼¼ www.apollorobot.cn (END OF FILE) *********************************/

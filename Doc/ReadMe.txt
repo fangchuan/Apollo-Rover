@@ -44,3 +44,37 @@ V1.0    2016-08-02      fc        1. 添加bsp_encoder,bsp_motor,bsp_gps,bsp_exti,
 		                          2.速度控制周期改为30ms，只用一个Kp效果良好
 								  3.增加RemoteControl.c 使用TIM1重映射
 								  
+		2016-08-20                1.遥控器初始设置完成， CH5-SwitchC  CH7-SwitchD  CH8-SwitchE
+		                          2.接收机暂时接收两个通道：CH3  CH4
+								  3.换上1:46  100rpm的电机，感觉转动更平滑点，以后就用这个电机？
+								  4.60RPM: Velocity_Max=220cm/s
+									100RPM:Velocity_Max=268cm/s
+								  5.电机油门应该直接对应到速度上，通过RC_CH3来给电机速度赋值
+								  6.重新调节速度PID，基本上能跟上遥控器输入，但是在输入速度<40时电机震荡较大
+								  7.控制器的D起反向作用是因为 P 仍然震荡
+								  8.线性化接收机输入值到角度，yaw线性化为角速度
+								  9._Motor增加on_off，输入速度低于40时直接关掉电机
+								  
+								  
+								  
+								  
+APOLLOROBOTROVER引脚分配:			
+	Motor_Left: PA6-TIM3_CH1          Encoder_Left: PA0-TIM2_CH1
+				PA7-TIM3_CH2		  Encoder_Left: PA1-TIM2_CH2
+	Motor_Right:PB0-TIM3_CH3		  Encoder_Right:PB6-TIM4_CH1
+				PB1-TIM3_CH4		  Encoder_Right:PB7-TIM4_CH2
+				
+	串口(调试打印): PA9-UART1_TX
+				   PA10-UART_RX
+				   
+	GPS:  PA2-UART2_TX
+		  PA3-UART2_RX
+		  
+	MPU9150: SCL-PC6
+			 SDA-PC7
+			 INT-PA4
+			 
+	接收机:  CH1-PE9
+	         CH2-PE11
+			 CH3-PE13
+			 CH4-PE14
