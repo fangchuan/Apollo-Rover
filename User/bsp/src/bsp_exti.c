@@ -15,7 +15,6 @@
 #include "common.h"
 #include "os.h"
 
-#if      AHRS_USE_DMP
 
 #define  MPU9150_INT_Pin				GPIO_Pin_4
 #define  MPU9150_INT_PORT       GPIOA
@@ -26,7 +25,6 @@
 #define  MPU9150_INT_ISR        EXTI4_IRQn
 #define  NVIC_MPU9150_PP        MPU9150_PRE_PRIORITY
 #define  NVIC_MPU9150_SP        MPU9150_SUB_PRIORITY
-#endif
 /*
 *********************************************************************************************************
 *	º¯ Êý Ãû: NVIC_Configuration

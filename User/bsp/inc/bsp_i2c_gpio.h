@@ -28,6 +28,9 @@ void i2c_NAck(void);
 uint8_t i2c_CheckDevice(uint8_t _Address);
 int8_t i2cwrite(uint8_t addr, uint8_t reg, uint8_t len, uint8_t * data);
 int8_t i2cread(uint8_t addr, uint8_t reg, uint8_t len, uint8_t *buf);
+int8_t i2cWriteOneByte(uint8_t addr, uint8_t reg, uint8_t data);
+int8_t i2cWriteBits(uint8_t addr, uint8_t reg, uint8_t bitStart, uint8_t length, uint8_t data);
+int8_t  i2cWriteBit(uint8_t addr, uint8_t reg, uint8_t bitNum, uint8_t data);
 
 #endif
 /***************************** °¢²¨ÂŞ¿Æ¼¼ www.apollorobot.cn (END OF FILE) *********************************/

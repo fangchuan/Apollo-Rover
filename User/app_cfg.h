@@ -17,23 +17,6 @@
 *               You can contact us at www.micrium.com.
 *********************************************************************************************************
 */
-
-/*
-*********************************************************************************************************
-*
-*	模块名称 : uCOS-III的应用配置
-*	文件名称 : app_cfg.c
-*	版    本 : V1.0
-*	说    明 : ucos-ii的应用配置
-*
-*	修改记录 :
-*		版本号  日期        作者     说明
-*		V1.0    2015-08-10 Eric2013  正式发布
-*
-*	Copyright (C), 2015-2016, 安富莱电子 www.armfly.com
-*
-*********************************************************************************************************
-*/
 #ifndef  APP_CFG_MODULE_PRESENT
 #define  APP_CFG_MODULE_PRESENT
 
@@ -52,9 +35,8 @@
 */
 
 #define  APP_CFG_TASK_START_PRIO                              2u
-#define  APP_CFG_TASK_SENSOR_PRIO                             3u
 #define  APP_CFG_TASK_COM_PRIO                                6u
-#define  APP_CFG_TASK_USER_IF_PRIO                            5u
+#define  APP_CFG_TASK_RC_PRIO                                 5u
 #define  APP_CFG_TASK_GPS_PRIO                                4u
 #define  APP_CFG_TASK_MOTOR_PRIO                              3u
 
@@ -67,11 +49,10 @@
 */
 
 #define  APP_CFG_TASK_START_STK_SIZE                      512u
-#define  APP_CFG_TASK_SENSOR_STK_SIZE                     512u
 #define  APP_CFG_TASK_COM_STK_SIZE                        512u
-#define  APP_CFG_TASK_USER_IF_STK_SIZE                    512u
+#define  APP_CFG_TASK_RC_STK_SIZE                         128u
 #define  APP_CFG_TASK_GPS_STK_SIZE                        1024u
-#define  APP_CFG_TASK_MOTOR_STK_SIZE			                512u
+#define  APP_CFG_TASK_MOTOR_STK_SIZE			                1024u
 
 
 /*

@@ -18,11 +18,8 @@
 #define  __AHRS_H
 
 
-void get_compass_bias(void);
-void compass_calibration(void);
-void Init_MPU9150(void);
-void init_quaternion(void);
-void ahrs_update_euler(void);
+
+extern void ahrs_update_euler(void);
 
 #endif
 

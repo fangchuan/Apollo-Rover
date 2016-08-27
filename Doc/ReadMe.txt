@@ -55,8 +55,17 @@ V1.0    2016-08-02      fc        1. 添加bsp_encoder,bsp_motor,bsp_gps,bsp_exti,
 								  8.线性化接收机输入值到角度，yaw线性化为角速度
 								  9._Motor增加on_off，输入速度低于40时直接关掉电机
 								  
+	   2016-08-22                 1.所用全局变量多的进程一定要做临界区保护!!!
+                                  2.yaw 还是会漂。。。两个小时漂24°
+                                  3.姿态数据仍然会有奇异点，是否中断优先级的问题？
+                                    可将关中断方法换成调度器上锁来保护dmp_update(),再测算一下dmp_update时间来判断是否真的是因为关中断时间太长影响RC的	
+  
+       2016-08-23                 1.dmp_read_fifo时间太长，影响RC接收,dmp_update不能关中断
+                                  2._euler数据仍然会被干扰
 								  
-								  
+	   2016-08-26                 1.IIC总线上的传感器都只能使用7bit地址
+	                              2.放弃MPU9150DMP方法，MPU6050+HMC5883L软件结算偏航正确，且ahrs_update_euler()关中断不影响RC接收
+								  3.YAW控制采用速率控制与角度控制相结合的方案
 								  
 APOLLOROBOTROVER引脚分配:			
 	Motor_Left: PA6-TIM3_CH1          Encoder_Left: PA0-TIM2_CH1

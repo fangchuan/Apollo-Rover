@@ -26,11 +26,11 @@ static  CPU_STK  AppTaskGPSStk[APP_CFG_TASK_GPS_STK_SIZE];
 static  OS_TCB   AppTaskCOMTCB;
 static  CPU_STK  AppTaskCOMStk[APP_CFG_TASK_COM_STK_SIZE];
 
-static  OS_TCB   AppTaskUserIFTCB;
-static  CPU_STK  AppTaskUserIFStk[APP_CFG_TASK_USER_IF_STK_SIZE];
+static  OS_TCB   AppTaskRCTCB;
+static  CPU_STK  AppTaskRCStk[APP_CFG_TASK_RC_STK_SIZE];
 
-static  OS_TCB   AppTaskSensorTCB;
-static  CPU_STK  AppTaskSensorStk[APP_CFG_TASK_SENSOR_STK_SIZE];
+//static  OS_TCB   AppTaskSensorTCB;
+//static  CPU_STK  AppTaskSensorStk[APP_CFG_TASK_SENSOR_STK_SIZE];
 
 static  OS_TCB   AppTaskMotorTCB;
 static  CPU_STK  AppTaskMotorStk[APP_CFG_TASK_MOTOR_STK_SIZE];
@@ -42,10 +42,9 @@ static  CPU_STK  AppTaskMotorStk[APP_CFG_TASK_MOTOR_STK_SIZE];
 */
 static  void   AppTaskStart          (void     *p_arg);
 static  void   AppTaskCreate         (void);
-static  void   AppTaskUserIF         (void     *p_arg);
+static  void   AppTaskRC             (void     *p_arg);
 static  void   AppTaskCOM						 (void 	   *p_arg);
 static  void   AppTaskGPS						 (void 	   *p_arg);
-static  void   AppTaskSensorUpdate	 (void 	   *p_arg);
 static  void 	 AppTaskMotorControl   (void *p_arg);
 static  void   DispTaskInfo          (void);
 static  void   AppObjCreate          (void);
@@ -58,8 +57,8 @@ static  void   App_Printf (CPU_CHAR *format, ...);
 */
 static  OS_SEM   SEM_MUTEX;	   //用于互斥
 static  OS_SEM   SEM_SYNCH;	   //用于同步
-static OS_TMR    Timer_500ms;
-static OS_TMR    Timer_1000ms;
+static  OS_TMR    Timer_500ms;
+static  OS_TMR    Timer_1000ms;
 /*********************************************************************
 *
 *       Global data
@@ -87,10 +86,10 @@ static void _cbOfTmr_1000(OS_TMR *p_tmr, void *p_arg)
 
 //		LogEncoderData();
 //		LogGpsData();
-		LogMotorData();
+//		LogMotorData();
 //		LogRTCData();
 //		LogMpu9150Data();
-
+//    LogRcData();
 }
 /*
 *********************************************************************************************************
@@ -160,14 +159,14 @@ static  void  AppTaskCreate (void)
                  (OS_ERR       *)&err);
 	
 	/**************创建USER IF任务*********************/
-	OSTaskCreate((OS_TCB       *)&AppTaskUserIFTCB,             
-                 (CPU_CHAR     *)"App Task UserIF",
-                 (OS_TASK_PTR   )AppTaskUserIF, 
+	OSTaskCreate((OS_TCB       *)&AppTaskRCTCB,             
+                 (CPU_CHAR     *)"App Task RadioReceiver",
+                 (OS_TASK_PTR   )AppTaskRC, 
                  (void         *)0,
-                 (OS_PRIO       )APP_CFG_TASK_USER_IF_PRIO,
-                 (CPU_STK      *)&AppTaskUserIFStk[0],
-                 (CPU_STK_SIZE  )APP_CFG_TASK_USER_IF_STK_SIZE / 10,
-                 (CPU_STK_SIZE  )APP_CFG_TASK_USER_IF_STK_SIZE,
+                 (OS_PRIO       )APP_CFG_TASK_RC_PRIO, 
+                 (CPU_STK      *)&AppTaskRCStk[0],
+                 (CPU_STK_SIZE  )APP_CFG_TASK_RC_STK_SIZE / 10,
+                 (CPU_STK_SIZE  )APP_CFG_TASK_RC_STK_SIZE,
                  (OS_MSG_QTY    )0,
                  (OS_TICK       )0,
                  (void         *)0,
@@ -187,21 +186,8 @@ static  void  AppTaskCreate (void)
                  (void         *)0,
                  (OS_OPT        )(OS_OPT_TASK_STK_CHK | OS_OPT_TASK_STK_CLR),
                  (OS_ERR       *)&err);
-	/**************创建Sensor Update任务*********************/
-	OSTaskCreate((OS_TCB       *)&AppTaskSensorTCB,             
-                 (CPU_CHAR     *)"App Task SensorUpdate",
-                 (OS_TASK_PTR   )AppTaskSensorUpdate, 
-                 (void         *)0,
-                 (OS_PRIO       )APP_CFG_TASK_SENSOR_PRIO,
-                 (CPU_STK      *)&AppTaskSensorStk[0],
-                 (CPU_STK_SIZE  )APP_CFG_TASK_SENSOR_STK_SIZE / 10,
-                 (CPU_STK_SIZE  )APP_CFG_TASK_SENSOR_STK_SIZE,
-                 (OS_MSG_QTY    )0,
-                 (OS_TICK       )0,
-                 (void         *)0,
-                 (OS_OPT        )(OS_OPT_TASK_STK_CHK | OS_OPT_TASK_STK_CLR),
-                 (OS_ERR       *)&err);
-	/**************创建Sensor Update任务*********************/
+
+	/**************创建Motor Control任务*********************/
 	OSTaskCreate((OS_TCB       *)&AppTaskMotorTCB,             
                  (CPU_CHAR     *)"App Task MotorControl",
                  (OS_TASK_PTR   )AppTaskMotorControl, 
@@ -211,7 +197,7 @@ static  void  AppTaskCreate (void)
                  (CPU_STK_SIZE  )APP_CFG_TASK_MOTOR_STK_SIZE / 10,
                  (CPU_STK_SIZE  )APP_CFG_TASK_MOTOR_STK_SIZE,
                  (OS_MSG_QTY    )0,
-                 (OS_TICK       )2,
+                 (OS_TICK       )0,
                  (void         *)0,
                  (OS_OPT        )(OS_OPT_TASK_STK_CHK | OS_OPT_TASK_STK_CLR),
                  (OS_ERR       *)&err);
@@ -263,12 +249,13 @@ static  void  AppTaskStart (void *p_arg)
 */
 static void AppTaskCOM(void *p_arg)
 {	
+//	 CPU_SR_ALLOC();
 	(void)p_arg;
 	 
 	while(1)
 	{
 //		DispGPSStatus();
-//		DispEulerData();
+		DispEulerData();
 //		DispEncoderData();
 		DispMotorData();
 //		DispRcData();
@@ -284,14 +271,18 @@ static void AppTaskCOM(void *p_arg)
 	优 先 级: 5
 *********************************************************************************************************
 */
-static void AppTaskUserIF(void *p_arg)
+static void AppTaskRC(void *p_arg)
 {
-
+  CPU_SR_ALLOC();
 	(void)p_arg;	               /* 避免编译器报警 */
 
 	while (1) 
-	{   		
-    BSP_OS_TimeDlyMs(1000);	     
+	{   
+		CPU_CRITICAL_ENTER();
+		//0--999
+		GetRCValue();
+		CPU_CRITICAL_EXIT();
+    BSP_OS_TimeDlyMs(10);	     
 	}
 }
 /*
@@ -314,48 +305,11 @@ static void AppTaskGPS(void *p_arg)
 		BSP_OS_TimeDlyMs(1000);
 	} 						  	 	       											   
 }
-/*
-*********************************************************************************************************
-*	函 数 名: AppTaskSensorUpdate
-*	功能说明: MPU9150姿态结算
-*	形    参: p_arg 是在创建该任务时传递的形参
-*	返 回 值: 无
-	优 先 级: 3
-*********************************************************************************************************
-*/
-static void AppTaskSensorUpdate(void *p_arg)
-{	
-	 int8_t result;
-	 (void)p_arg;
 
-#if  AHRS_USE_DMP
-	 result = dmp_init();
-	 if(result)
-	 {
-		 printf("DMP initialize error!\n");
-	 }
-#else
-	 Init_MPU9150();
-//	 get_compass_bias();
-//	 compass_calibration();
-#endif
-	 
-	while(1)
-	{
-		
-#if  AHRS_USE_DMP
-		dmp_update_euler();
-#else
-		ahrs_update_euler();
-#endif
-
-		BSP_OS_TimeDlyMs(10);
-	} 						  	 	       											   
-}
 /*
 *********************************************************************************************************
 *	函 数 名: AppTaskMotorControl
-*	功能说明: 电机控制任务，与传感器更新任务相同优先级
+*	功能说明: 电机控制任务
 *						
 *	形    参: p_arg 是在创建该任务时传递的形参
 *	返 回 值: 无
@@ -364,15 +318,16 @@ static void AppTaskSensorUpdate(void *p_arg)
 */
 static void AppTaskMotorControl(void *p_arg)
 {	
+//	 CPU_SR_ALLOC();
 	(void)p_arg;
-	 
-//		Motor_1_Forward();
-//		Motor_2_Forward();
+
 	ArRoverInit();
 	while(1)
 	{
+//		CPU_CRITICAL_ENTER();
 //		CalcMotorSpeedAndAngle();
 		ArRoverLoop();
+//		CPU_CRITICAL_EXIT();
 		BSP_OS_TimeDlyMs(10);
 	} 						  	 	       											   
 }

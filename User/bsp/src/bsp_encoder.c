@@ -39,7 +39,7 @@
 #define TIMx_SUB_PRIORITY     ENCODER_SUB_PRIORITY
 
 #define ENCODER_MAX_NUM          2
-#define ENCODER_PPR     				858//506   // number of pulses per revolution
+#define ENCODER_PPR     				506//858   // number of pulses per revolution
 #define SPEED_BUFFER_SIZE 			8
 
 #define COUNTER_RESET   				(u16)0
@@ -398,12 +398,14 @@ void TIM4_IRQHandler(void)
 *******************************************************************************/
 void CalcMotorSpeedAndAngle(void)
 {
+
 		u8   i;
 	  for(i = 0; i< MOTOR_MAX_NUM; i++)
 		{
 			_motor[i].cur_speed = (float)ENC_Calc_Average_Speed(i) * MOTOR_DIAMETER * M_PI;			
 			_motor[i].cur_angle = (float)ENC_Get_Motor_Angle(i);
 		}
+
 }
 /*******************************************************************************
 * Function Name  : CalcMotorMileage

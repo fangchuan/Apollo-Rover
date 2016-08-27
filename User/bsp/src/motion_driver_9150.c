@@ -20,6 +20,7 @@
 #include "inv_mpu_dmp_motion_driver.h"
 #include "bsp_exti.h"
 #include "motion_driver_9150.h"
+#include "os.h"
 /*********************************************************************
 *
 *       Global data
@@ -38,7 +39,7 @@ _Euler  _euler;
 #define ACCEL_ON        (0x01)
 #define GYRO_ON         (0x02)
 /* Starting sampling rate. */
-#define DEFAULT_MPU_HZ  (100)
+#define DEFAULT_MPU_HZ  (200)
 
 
 /*********************************************************************
@@ -154,11 +155,11 @@ static void quaterion_to_euler(long *data)
      q[2] = (data[2])*1.0f/q30;
      q[3] = (data[3])*1.0f/q30;
      
-     _euler.roll = (atan2(2.0*(q[0]*q[1] + q[2]*q[3]),1-2*(q[1]*q[1] + q[2]*q[2])))* 180/M_PI;
+     _euler.roll = (atan2(2.0*(q[0]*q[1] + q[2]*q[3]),1-2*(q[1]*q[1] + q[2]*q[2])))* RAD_TO_DEGREE;
 	 // we let safe_asin() handle the singularities near 90/-90 in pitch
-     _euler.pitch = dmpsafe_asin(2.0*(q[0]*q[2] - q[3]*q[1]))* 180/M_PI;
+     _euler.pitch = dmpsafe_asin(2.0*(q[0]*q[2] - q[3]*q[1]))* RAD_TO_DEGREE;
 
-     _euler.yaw = (atan2(2.0*(q[0]*q[3] + q[1]*q[2]),1-2*(q[2]*q[2] + q[3]*q[3])))* 180/M_PI;
+     _euler.yaw = (atan2(2.0*(q[0]*q[3] + q[1]*q[2]),1-2*(q[2]*q[2] + q[3]*q[3])))* RAD_TO_DEGREE;
 }
 /*
 *********************************************************************************************************
@@ -243,17 +244,22 @@ int8_t dmp_init(void)
 *********************************************************************************************************
 *	函 数 名: dmp_update_euler
 *	功能说明: DMP中断更新欧拉角(N->B)
+*           本函数执行周期大概470us
 *	形    参: 
 *	返 回 值:
 *********************************************************************************************************
 */
+#if   AHRS_USE_DMP
 void dmp_update_euler(void)
 {
-
+		CPU_SR_ALLOC();
+    CPU_CRITICAL_ENTER();
+	  
     if(hal.new_gyro && hal.dmp_on)
     {
 			 unsigned long sensor_timestamp;
        dmp_read_fifo(_euler.gyro, _euler.accel, _euler.quat, &sensor_timestamp, &_euler.sensors, &_euler.more);
+//			 sensor_timestamp  = OS_TS_GET();
 	
        quaterion_to_euler(_euler.quat);
        _euler.rate[0] =  radians((float)_euler.gyro[0]*GYRO_2000_SCALE_PARAMETER);//X轴角速度
@@ -267,10 +273,11 @@ void dmp_update_euler(void)
 			 if (!_euler.more)
 				 hal.new_gyro = 0;
 			 
+//			 printf("DMP time:%lld\n", CPU_TS32_to_uSec(OS_TS_GET() - sensor_timestamp));
 			}         
-
+		CPU_CRITICAL_EXIT();
 }
-
+#endif
 /*
 *********************************************************************************************************
 *	函 数 名: DispEulerData
@@ -286,13 +293,13 @@ void  DispEulerData(void)
 		printf("Pitch: %d\n",(int)_euler.pitch);
 		printf("Yaw:  %d\n", (int)_euler.yaw);
 		
-		printf("Gyro X:  %d\n", (int)(_euler.rate[0]*100));
-		printf("Gyro Y:  %d\n", (int)(_euler.rate[1]*100));
-		printf("Gyro Z:  %d\n", (int)(_euler.rate[2]*100));
+		printf("Gyro X:  %d\n", (int)(_euler.rate[0]*RAD_TO_DEGREE));
+		printf("Gyro Y:  %d\n", (int)(_euler.rate[1]*RAD_TO_DEGREE));
+		printf("Gyro Z:  %d\n", (int)(_euler.rate[2]*RAD_TO_DEGREE));
 	
-		printf("Accel X:  %d\n", (int)(_euler.acc[0]*100));
-		printf("Accel Y:  %d\n", (int)(_euler.acc[1]*100));
-		printf("Accel Z:  %d\n", (int)(_euler.acc[2]*100));
+//		printf("Accel X:  %d\n", (int)(_euler.acc[0]*CONSTANTS_ONE_G));
+//		printf("Accel Y:  %d\n", (int)(_euler.acc[1]*CONSTANTS_ONE_G));
+//		printf("Accel Z:  %d\n", (int)(_euler.acc[2]*CONSTANTS_ONE_G));
 
 }
 /***************************** 阿波罗科技 www.apollorobot.cn (END OF FILE) *********************************/

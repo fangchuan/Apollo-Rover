@@ -42,12 +42,13 @@ void bsp_Init(void)
 		启动文件配置了CPU主时钟频率、内部Flash访问速度和可选的外部SRAM FSMC初始化。
 		系统时钟缺省配置为72MHz，如果需要更改，可以修改 system_stm32f10x.c 文件
 	*/
-	/* 优先级分组设置为4 */
+	/* 优先级分组设置为2 */
 	NVIC_PriorityGroupConfig(NVIC_PriorityGroup_2);
 
 	bsp_InitUart(); 	/* 初始化串口 */
 	bsp_InitLed(); 		/* 初始LED指示灯端口 */
 	bsp_InitI2C();
+
 #if  AHRS_USE_DMP
 	bsp_InitEXTI();
 #endif
@@ -56,9 +57,10 @@ void bsp_Init(void)
 	bsp_ENCInit();
 //	bsp_InitRTC();
 	bsp_ReceiverInit();
-	
+	bsp_InitHMC5883L();
+	bsp_MPU6050Init();
 	bsp_SDLogInit();
-	my_mem_init(SRAMIN);
+//	my_mem_init(SRAMIN);
 	
 
 }

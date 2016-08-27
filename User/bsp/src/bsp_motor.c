@@ -359,7 +359,7 @@ void SetMotorsPWM(void)
 		if(_motor[MOTOR_LEFT].on_off){
 			 if(_motor[MOTOR_LEFT].tar_speed > 0)
 			 { //get the total output
-				 _motor[MOTOR_LEFT].out = _motor[MOTOR_LEFT].vel_pid_out - _motor[MOTOR_LEFT].yaw_pid_out;
+				 _motor[MOTOR_LEFT].out = _motor[MOTOR_LEFT].vel_pid_out;
 				 pwm_left += _motor[MOTOR_LEFT].out;
 				 
 				 MOTOR_Left_Out1 = constrain(pwm_left, MOTOR_PWM_MIN, MOTOR_PWM_MAX);
@@ -377,7 +377,7 @@ void SetMotorsPWM(void)
 						 _motor[MOTOR_LEFT].vel_pid_out = - _motor[MOTOR_LEFT].vel_pid_out;
 				 }
 				 //get the total output
-				 _motor[MOTOR_LEFT].out = _motor[MOTOR_LEFT].vel_pid_out - _motor[MOTOR_LEFT].yaw_pid_out;
+				 _motor[MOTOR_LEFT].out = _motor[MOTOR_LEFT].vel_pid_out ;
 				 pwm_left += _motor[MOTOR_LEFT].out;
 				 
 				 MOTOR_Left_Out2 = constrain(pwm_left, MOTOR_PWM_MIN, MOTOR_PWM_MAX);
@@ -393,7 +393,7 @@ void SetMotorsPWM(void)
 		if(_motor[MOTOR_RIGHT].on_off){
 			if(_motor[MOTOR_RIGHT].tar_speed > 0)
 			{  //get the total output
-				 _motor[MOTOR_RIGHT].out = _motor[MOTOR_RIGHT].vel_pid_out + _motor[MOTOR_RIGHT].yaw_pid_out;
+				 _motor[MOTOR_RIGHT].out = _motor[MOTOR_RIGHT].vel_pid_out ;
 				 pwm_right += _motor[MOTOR_RIGHT].out;
 				
 				 MOTOR_Right_Out1 = constrain(pwm_right, MOTOR_PWM_MIN, MOTOR_PWM_MAX);
@@ -411,7 +411,7 @@ void SetMotorsPWM(void)
 						 _motor[MOTOR_RIGHT].vel_pid_out = - _motor[MOTOR_RIGHT].vel_pid_out;
 				 }
 				 //get the total output
-				 _motor[MOTOR_RIGHT].out = _motor[MOTOR_RIGHT].vel_pid_out + _motor[MOTOR_RIGHT].yaw_pid_out;
+				 _motor[MOTOR_RIGHT].out = _motor[MOTOR_RIGHT].vel_pid_out ;
 				 pwm_right += _motor[MOTOR_RIGHT].out;
 				 
 				 MOTOR_Right_Out2 = constrain(pwm_right, MOTOR_PWM_MIN, MOTOR_PWM_MAX);

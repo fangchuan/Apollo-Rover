@@ -16,6 +16,7 @@
 #include "stdint.h"
 #include "stdio.h"
 #include "common.h"
+#include "os.h"
 #include "RemoteControl.h"
 
 /*********************************************************************
@@ -73,9 +74,9 @@ static uint16_t CH1_Rise, CH1_Fall,
 								CH2_Rise, CH2_Fall,
 								CH3_Rise, CH3_Fall,
 								CH4_Rise, CH4_Fall;
-static uint16_t TIM_Period;
+volatile static uint16_t TIM_Period;
 //PWMInCh1:副翼  PWMInCh2:升降舵  PWMInCh3:油门  PWMInCh4:方向舵
-static uint16_t PWMInCh1=0, PWMInCh2=0, PWMInCh3=0, PWMInCh4=0;
+volatile static uint16_t PWMInCh1=0, PWMInCh2=0, PWMInCh3=0, PWMInCh4=0;
 
 static void ReceiverNvicConfiguration(void)
 { 
@@ -126,28 +127,28 @@ static void ReceiverTIMInit(void)
 			TIM_ICInitStructure.TIM_ICPolarity = TIM_ICPolarity_Rising;	//先上升沿捕获
 			TIM_ICInitStructure.TIM_ICSelection = TIM_ICSelection_DirectTI; //映射到TI1上
 			TIM_ICInitStructure.TIM_ICPrescaler = TIM_ICPSC_DIV1;	 //配置输入分频,不分频 
-			TIM_ICInitStructure.TIM_ICFilter = 0x0B;//IC1F=1010 滤掉1us以下脉冲宽度的干扰
+			TIM_ICInitStructure.TIM_ICFilter = 0x0A;//IC1F=1001 滤掉1us以下脉冲宽度的干扰
 			TIM_ICInit(RECEIVER_TIM, &TIM_ICInitStructure);
 			//初始化定时器输入捕获参数,PA1-升降舵
 			TIM_ICInitStructure.TIM_Channel = TIM_Channel_2; 
 			TIM_ICInitStructure.TIM_ICPolarity = TIM_ICPolarity_Rising;	//先上升沿捕获
 			TIM_ICInitStructure.TIM_ICSelection = TIM_ICSelection_DirectTI; //映射到TI1上
 			TIM_ICInitStructure.TIM_ICPrescaler = TIM_ICPSC_DIV1;	 //配置输入分频,不分频 
-			TIM_ICInitStructure.TIM_ICFilter = 0x0B;//IC1F=1010 滤掉1us以下脉冲宽度的干扰
+			TIM_ICInitStructure.TIM_ICFilter = 0x0A;//IC1F=1001 滤掉1us以下脉冲宽度的干扰
 			TIM_ICInit(RECEIVER_TIM, &TIM_ICInitStructure);
 			//初始化定时器输入捕获参数,PA2-油门
 			TIM_ICInitStructure.TIM_Channel = TIM_Channel_3; 
 			TIM_ICInitStructure.TIM_ICPolarity = TIM_ICPolarity_Rising;	//先上升沿捕获
 			TIM_ICInitStructure.TIM_ICSelection = TIM_ICSelection_DirectTI; //映射到TI1上
 			TIM_ICInitStructure.TIM_ICPrescaler = TIM_ICPSC_DIV1;	 //配置输入分频,不分频 
-			TIM_ICInitStructure.TIM_ICFilter = 0x0B;//IC1F=1010 滤掉1us以下脉冲宽度的干扰
+			TIM_ICInitStructure.TIM_ICFilter = 0x0A;//IC1F=1001 滤掉1us以下脉冲宽度的干扰
 			TIM_ICInit(RECEIVER_TIM, &TIM_ICInitStructure);
 			//初始化定时器输入捕获参数,PA3-方向舵
 			TIM_ICInitStructure.TIM_Channel = TIM_Channel_4; 
 			TIM_ICInitStructure.TIM_ICPolarity = TIM_ICPolarity_Rising;	//先上升沿捕获
 			TIM_ICInitStructure.TIM_ICSelection = TIM_ICSelection_DirectTI; //映射到TI1上
 			TIM_ICInitStructure.TIM_ICPrescaler = TIM_ICPSC_DIV1;	 //配置输入分频,不分频 
-			TIM_ICInitStructure.TIM_ICFilter = 0x0B;//IC1F=1010 滤掉1us以下脉冲宽度的干扰
+			TIM_ICInitStructure.TIM_ICFilter = 0x0A;//IC1F=1001 滤掉1us以下脉冲宽度的干扰
 			TIM_ICInit(RECEIVER_TIM, &TIM_ICInitStructure);
 			
 			TIM_ITConfig(RECEIVER_TIM,TIM_IT_CC1,ENABLE);//允许CC1IE边沿捕获中断	 
@@ -199,6 +200,11 @@ void  bsp_ReceiverInit(void)
 */
 void ReceiverIRQHandler(void)
 {
+		CPU_SR_ALLOC();
+
+    CPU_CRITICAL_ENTER();
+	  OSIntEnter();
+	  CPU_CRITICAL_EXIT();
    // 如果捕获到ch1副翼
 		if (TIM_GetITStatus(RECEIVER_TIM, TIM_IT_CC1) != RESET)//ch1发生捕获事件
 		{	
@@ -310,7 +316,7 @@ void ReceiverIRQHandler(void)
 					TIM_OC4PolarityConfig(RECEIVER_TIM,TIM_ICPolarity_Rising); //CC1P=0 设置为上升沿捕获			
 				}		    
 		}		
-
+		OSIntExit();
 }
 /*
 *********************************************************************************************************
@@ -324,10 +330,10 @@ void  GetRCValue(void)
 {			//0~999
 		_rc.ch3_val = constrain(PWMInCh3 - RC_THROTTLE_BASE, RC_THROTTLE_MIN, RC_THROTTLE_MAX);
 		
-		_rc.ch1_val = MAX_RP_ANGLE * ScaleLinear((PWMInCh1 - RC_RPY_BASE), RC_RPY_MAX, RC_RPY_DEADBAND);
-		_rc.ch2_val = MAX_RP_ANGLE * ScaleLinear((PWMInCh2 - RC_RPY_BASE), RC_RPY_MAX, RC_RPY_DEADBAND);
+//		_rc.ch1_val = MAX_RP_ANGLE * ScaleLinear((PWMInCh1 - RC_RPY_BASE), RC_RPY_MAX, RC_RPY_DEADBAND);
+//		_rc.ch2_val = MAX_RP_ANGLE * ScaleLinear((PWMInCh2 - RC_RPY_BASE), RC_RPY_MAX, RC_RPY_DEADBAND);
 	//yaw rate : °/s
-		_rc.ch4_val = MAX_YAW_RATE * ScaleLinear(PWMInCh4 - RC_RPY_BASE, RC_RPY_MAX, RC_RPY_DEADBAND);
+		_rc.ch4_val = MAX_YAW_RATE * ScaleLinear((PWMInCh4 - RC_RPY_BASE), RC_RPY_MAX, RC_RPY_DEADBAND);
 	 
 }
 /*******************************************************************************
@@ -339,10 +345,10 @@ void  GetRCValue(void)
 *******************************************************************************/
 void DispRcData(void)
 {
-		printf("Channel1:%d\n", _rc.ch1_val);
-		printf("Channel2:%d\n", _rc.ch2_val);
+		printf("Channel1:%d\n", (int)_rc.ch1_val);
+		printf("Channel2:%d\n", (int)_rc.ch2_val);
 		printf("Channel3:%d\n", _rc.ch3_val);
-		printf("Channel4:%d\n", _rc.ch4_val);
+		printf("Channel4:%d\n", (int)_rc.ch4_val);
 
 }	
 /***************************** 阿波罗科技 www.apollorobot.cn (END OF FILE) *********************************/

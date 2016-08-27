@@ -17,410 +17,91 @@
 #include "stdio.h"
 #include "stdint.h"
 #include "math.h"
-#include "inv_mpu.h"
 #include "common.h"
+#include "bsp_mpu6050.h"
+#include "bsp_hmc5883l.h"
 #include "ahrs.h"
-#include "bsp_i2c_gpio.h"
-
+#include "os.h"
 /*********************************************************************
 *
 *       Macro define
 *
 **********************************************************************
 */
-#define MPU9150_ADDR           0x68
-#define POWER_MANAGE_1         0x6B
-#define ACCEL_FILTER_98HZ			 98
-#define ACCEL_XOUT_H		    	 0x3B
-#define GYRO_XOUT_H		         0x43
-#define BYPASS_ENABLE_CFG 		 0x37
-#define USER_CTRL              0x6A
-#define COMPASS_ADDR           0x0C
-#define COMPASS_CNTL           0x0A
-#define COMPASS_ST1            0x02
-#define	COMPASS_HXL            0x03
 
-#define MPU_SAMPLE_FREQ        1000
 
-#define  Accel_Xout_Offset  -130
-#define  Accel_Yout_Offset  96
-#define  Accel_Zout_Offset  460
-
-#define  Kp          2.0f     //proportional gain governs rate of convergence to accelerometer/magnetometer
-#define  Ki          0.005f   //integral gain governs rate of convergence of gyroscope biases
-#define	 halfT 				0.005f  //half the sample period,halfT 0.5f需要根据具体姿态更新周期来调整，T是姿态更新周期，T*角速度=微分角度
+#define  Kp          10.0f     //proportional gain governs rate of convergence to accelerometer/magnetometer
+#define  Ki          0.25f   //integral gain governs rate of convergence of gyroscope biases
+float    halfT = 0.005;
+///#define	 halfT 			 0.005f  //half the sample period,halfT 0.5f需要根据具体姿态更新周期来调整，T是姿态更新周期，T*角速度=微分角度
 /*********************************************************************
 *
-*       Macro define
+*       Global Data
 *
 **********************************************************************
 */
-uint8_t  IsQuaternionInit = 0;
-float init_ax, init_ay, init_az, init_gx, init_gy, init_gz, init_mx, init_my, init_mz;
-float maxMagX = 0;
-float minMagX = 0;
-float maxMagY = 0;
-float minMagY = 0;
-float maxMagZ = 0;
-float minMagZ = 0;
-float MXgain = 0;
-float MYgain = 0;
-float MZgain = 0;
-
-float MXoffset = 0;
-float MYoffset = 0;
-float MZoffset = 0;
+static uint8_t  IsQuaternionInit = 0;
+static float    init_ax, init_ay, init_az,
+					      init_gx, init_gy, init_gz,
+					      init_mx, init_my, init_mz;
 
 float q0 = 1.0, q1 = 0, q2 = 0, q3 = 0;
 float exInt = 0, eyInt = 0, ezInt = 0;        // scaled integral error
 
 extern _Euler _euler;
 
-
 /*
 *********************************************************************************************************
-*	函 数 名: delayus
-*	功能说明: us 级别延时，不是很精确
+*	函 数 名: GetMotion9
+*	功能说明: 获取九轴原始数据
 *	形    参:  无
 *	返 回 值: 无
 *********************************************************************************************************
 */
-static void delay_us(volatile uint32_t cnt)
+static void GetMotion9(void)
 {
-    uint16_t i;
-    for(i = 0;i<cnt;i++)
-    {
-        uint8_t us = 12; /* 设置值为12，大约延1微秒 */    
-        while (us--)     /* 延1微秒	*/
-        {
-            ;   
-        }
-    }
+	     int16_t buffer[9];
+	
+	     MPU6050_GetMotion6(&buffer[0], &buffer[1], &buffer[2], &buffer[3], &buffer[4], &buffer[5]);
+	     HMC5883L_GetRaw(&buffer[6], &buffer[7], &buffer[8]);
+	
+	     init_ax = (float)buffer[0] * ACCEL_2_SACLE_PARAMETER;
+	     init_ay = (float)buffer[1] * ACCEL_2_SACLE_PARAMETER;
+	     init_az = (float)buffer[2] * ACCEL_2_SACLE_PARAMETER;
+	     init_gx = (float)buffer[3] * GYRO_2000_SCALE_PARAMETER * DEGREE_TO_RAD;
+	     init_gy = (float)buffer[4] * GYRO_2000_SCALE_PARAMETER * DEGREE_TO_RAD;
+	     init_gz = (float)buffer[5] * GYRO_2000_SCALE_PARAMETER * DEGREE_TO_RAD;
+	     init_mx = (float)buffer[6] * MAG_GAIN_230_PARAMETER;
+	     init_my = (float)buffer[7] * MAG_GAIN_230_PARAMETER;
+	     init_mz = (float)buffer[8] * MAG_GAIN_230_PARAMETER;
+	
+	     _euler.acc[0] = init_ax;
+	     _euler.acc[1] = init_ay;
+	     _euler.acc[2] = init_az;
+	     _euler.rate[0] = init_gx;
+	     _euler.rate[1] = init_gy;
+	     _euler.rate[2] = init_gz;
 }
 /*
 *********************************************************************************************************
-*	函 数 名: delayms
-*	功能说明: ms级别延时，不是很精确
+*	函 数 名: init_quaternion
+*	功能说明: 初始化四元数q0 q1 q2 q3.
 *	形    参:  无
 *	返 回 值: 无
 *********************************************************************************************************
 */
-static void delay_ms(volatile uint32_t cnt)
-{
-    uint16_t i;
-    for(i = 0;i<cnt;i++)
-    {
-       delay_us(1000);
-    }
-}
-/*
-*********************************************************************************************************
-*	函 数 名: read_magnetometer
-*	功能说明: 读取compass数据，用于compass校准	
-*	形    参:  无
-*	返 回 值: 无
-*********************************************************************************************************
-*/
-extern  long mag_sens_adj_val[3];
-
-void read_magnetometer(void)
-{
-  signed short int mag[3];
-  unsigned char tmp[7], data_write[1];
-  
-  tmp[6]=0x00;
-  data_write[0]=0x01;
-  i2cread(COMPASS_ADDR, COMPASS_ST1, 1, tmp+6);
-  if(tmp[6] == 1)
-  {
-    i2cread(COMPASS_ADDR, COMPASS_HXL, 6, tmp);
-		mag[0] = (((signed short int)tmp[1]) << 8) | tmp[0];
-    mag[1] = (((signed short int)tmp[3]) << 8) | tmp[2];
-    mag[2] = (((signed short int)tmp[5]) << 8) | tmp[4];
-
-		mag[0] = ((long)mag[0] * mag_sens_adj_val[0]) >> 8;  //灵敏度调整
-    mag[1] = ((long)mag[1] * mag_sens_adj_val[1]) >> 8;
-    mag[2] = ((long)mag[2] * mag_sens_adj_val[2]) >> 8;
-
-		init_mx =(float)mag[1];		//转换坐标轴				
-    init_my =(float)mag[0];
-    init_mz =(float)-mag[2];
-		
-		i2cwrite(COMPASS_ADDR, COMPASS_CNTL, 1, data_write);	 //开启compass：single measurement mode
-  }  
-}
-/*
-*********************************************************************************************************
-*	函 数 名: get_compass_bias
-*	功能说明: 得到mag的Xmax、Xmin、Ymax、Ymin、Zmax、Zmin	
-*	形    参:  无
-*	返 回 值: 无
-*********************************************************************************************************
-*/
-void get_compass_bias(void)
-{
-  read_magnetometer();
-
-  if(init_mx > maxMagX)
-		maxMagX = init_mx;
-  if(init_mx < minMagX)
-		minMagX = init_mx;
-
-  if(init_my > maxMagY)
-		maxMagY = init_my;
-  if(init_my < minMagY)
-		minMagY = init_my;
-
-  if(init_mz > maxMagZ)
-		maxMagZ = init_mz;
-  if(init_mz < minMagZ)
-		minMagZ = init_mz;
-//  printf("maxMagX=%f, minMagX=%f, maxMagY=%f, minMagY=%f, maxMagZ=%f, minMagZ=%f \n\r", 
-//          maxMagX, minMagX, maxMagY, minMagY, maxMagZ, minMagZ);  
-}
-/*
-*********************************************************************************************************
-*	函 数 名: get_compass_bias
-*	功能说明: 校准compass
-*	形    参:  无
-*	返 回 值: 无
-*********************************************************************************************************
-*/
-void compass_calibration(void)
-{ //将有最大响应的轴的增益设为1
-  if(((maxMagX - minMagX) >= (maxMagY - minMagY)) && ((maxMagX - minMagX) >= (maxMagZ - minMagZ)))
-  {
-    MXgain = 1.0;
-		MYgain = (maxMagX - minMagX) / (maxMagY - minMagY);
-		MZgain = (maxMagX - minMagX) / (maxMagZ - minMagZ);
-		MXoffset = -0.5 * (maxMagX + minMagX);
-		MYoffset = -0.5 * MYgain * (maxMagY + minMagY);
-		MZoffset = -0.5 * MZgain * (maxMagZ + minMagZ);	 
-  }
-  if(((maxMagY - minMagY) > (maxMagX - minMagX)) && ((maxMagY - minMagY) >= (maxMagZ - minMagZ)))
-  {
-    MXgain = (maxMagY - minMagY) / (maxMagX - minMagX);
-		MYgain = 1.0;
-		MZgain = (maxMagY - minMagY) / (maxMagZ - minMagZ);
-		MXoffset = -0.5 * MXgain * (maxMagX + minMagX);
-		MYoffset = -0.5 * (maxMagY + minMagY);
-		MZoffset = -0.5 * MZgain * (maxMagZ + minMagZ);    
-  }
-  if(((maxMagZ - minMagZ) > (maxMagX - minMagX)) && ((maxMagZ - minMagZ) > (maxMagY - minMagY)))
-  {
-    MXgain = (maxMagZ - minMagZ) / (maxMagX - minMagX);
-		MYgain = (maxMagZ - minMagZ) / (maxMagY - minMagY);
-		MZgain = 1.0;
-		MXoffset = -0.5 * MXgain * (maxMagX + minMagX);
-		MYoffset = -0.5 * MYgain * (maxMagY + minMagY);
-		MZoffset = -0.5 * (maxMagZ + minMagZ);    
-  }
-  printf("MXgain=%f, MYgain=%f, MZgain=%f, MXoffset=%f, MYoffset=%f, MZoffset=%f \n\r", 
-          MXgain, MYgain, MZgain, MXoffset, MYoffset, MZoffset);         
-}
-/*
-*********************************************************************************************************
-*	函 数 名: Init_Magnetometer
-*	功能说明: 读取compass数据，在初始化mpu9150后先读几次mag的数据，因为前几次读取的mag数据有错误
-*	形    参:  无
-*	返 回 值:  无
-*********************************************************************************************************
-*/
-int Init_Magnetometer(void)
-{
-		unsigned char data_write[3];
-		signed short int mag[3];
-		unsigned char tmp[7];
-		uint8_t i=6;
-		
-		data_write[0]=0x02;       
-		data_write[1]=0x00;
-		data_write[2]=0x01;
-		
-		i2cwrite(MPU9150_ADDR, BYPASS_ENABLE_CFG, 1, data_write);	 //开启bypass
-		delay_ms(10);                     
-		i2cwrite(MPU9150_ADDR, USER_CTRL, 1, data_write+1);	 //关闭MPU9150的I2C_MASTER模式，必须要有这句
-		delay_ms(10);
-		i2cwrite(COMPASS_ADDR, COMPASS_CNTL, 1, data_write+2);	 //开启compass：single measurement mode
-
-		
-		tmp[6]=0x00;
-		data_write[0]=0x01;
-		for(;i>0;i--)
-		{
-			i2cread(COMPASS_ADDR, COMPASS_ST1, 1, tmp+6);
-			if(tmp[6] == 1)
-			{
-				i2cread(COMPASS_ADDR, COMPASS_HXL, 6, tmp);
-				mag[0] = (((signed short int)tmp[1]) << 8) | tmp[0];
-				mag[1] = (((signed short int)tmp[3]) << 8) | tmp[2];
-				mag[2] = (((signed short int)tmp[5]) << 8) | tmp[4];
-
-				mag[0] = ((long)mag[0] * mag_sens_adj_val[0]) >> 8;  //灵敏度调整
-				mag[1] = ((long)mag[1] * mag_sens_adj_val[1]) >> 8;
-				mag[2] = ((long)mag[2] * mag_sens_adj_val[2]) >> 8;
-
-				i2cwrite(COMPASS_ADDR, COMPASS_CNTL, 1, data_write + 2);	 //开启compass：single measurement mode
-			} 
-		}
-		return 0;  
-}
-/*
-*********************************************************************************************************
-*	函 数 名: Init_MPU9150
-*	功能说明: 读取compass数据，在初始化mpu9150后先读几次mag的数据，因为前几次读取的mag数据有错误
-*	形    参:  无
-*	返 回 值:  无
-*********************************************************************************************************
-*/
-void Init_MPU9150(void)
-{
-  int result;
-  unsigned char data_write[1];
-
-  result = mpu_init((void*)0);
-  if(!result)
-  {
-	  printf("\r\n mpu initialization complete ......\n\r ");
-
-	  //开启加速度计、陀螺仪、磁力计，使用电子罗盘，要加入INV_XYZ_COMPASS
-	  if(!mpu_set_sensors(INV_XYZ_GYRO | INV_XYZ_ACCEL | INV_XYZ_COMPASS))
-	  {
-	  	 printf("\r\n mpu_set_sensor complete ......\n\r");
-	  }
-	  else
-	  {
-	  	 printf("\r\n mpu_set_sensor error ......\n\r");
-			 while(1);
-	  }
-
-	  //设置MPU9150的时钟源为GX的PLL
-	  data_write[0]=0x01;				//GX_PLL:0x01
-	  if(!i2cwrite(MPU9150_ADDR, POWER_MANAGE_1, 1, data_write))
-	  {
-	  	 printf("\r\n set_mpu9150_ClockSource complete ......\n\r");
-	  }
-	  else
-	  {
-	  	 printf("\r\n set_mpu9150_ClockSource error ......\n\r");
-			 while(1);
-	  }
-
-	  //设置陀螺仪测量范：+-500度/s
-	  if(!mpu_set_gyro_fsr(2000))
-	  {
-	  	 printf("\r\n mpu_set_gyro_fsr complete ......\n\r");
-	  }
-	  else
-	  {
-	  	 printf("\r\n mpu_set_gyro_fsr error ......\n\r");
-			 while(1);
-	  }
-
-	  //设置加速度计测量范围：+-4G
-	  if(!mpu_set_accel_fsr(2))
-	  {
-	  	 printf("\r\n mpu_set_accel_fsr complete ......\n\r");
-	  }
-	  else
-	  {
-	  	 printf("\r\n mpu_set_accel_fsr error ......\n\r");
-			 while(1);
-	  }
-
-	  //设置加速度计的低通滤波器，防震动，由于朗宇X2212 kv980电机电压11.1v下转速为120r/s，因此DLPF选98hz，后面可考虑加权平均滤波
-	  if(!mpu_set_lpf(98))
-	  {
-	  	 printf("\r\n mpu_set_lpf complete ......\n\r");
-	  }
-	  else
-	  {
-	  	 printf("\r\n mpu_set_lpf error ......\n\r");
-			 while(1);
-	  }
-
-	  //设置采样率1kHz
-	  if(!mpu_set_sample_rate(MPU_SAMPLE_FREQ))
-	  {
-	  	 printf("\r\n mpu_set_sample_rate complete ......\n\r");
-	  }
-	  else
-	  {
-	  	 printf("\r\n mpu_set_sample_rate error ......\n\r");
-			 while(1);
-	  }
-
-	  //先读几次mag数据，因为前几次mag数据有错误，芯片bug
-	  if(!Init_Magnetometer())
-	  {
-	  	 printf("\r\n Init_Magnetometer complete ......\n\r");
-	  }
-	  else
-	  {
-	  	 printf("\r\n Init_Magnetometer error ......\n\r");
-			 while(1);
-	  }
-  }
-  else
-  {
-      printf("\r\n mpu initialization error......\n\r ");
-			while(1);
-  }
-
-}
-
-
-/*******************************************************************************
-* Function Name  : init_quaternion
-* Description    : 算出初始化四元数q0 q1 q2 q3.
-* Input          : None
-* Output         : None
-* Return         : None
-*******************************************************************************/
-void init_quaternion(void)
+static void init_quaternion(void)
 { 
+
 		float init_Yaw, init_Pitch, init_Roll;
-		signed short int accel[3], mag[3];
-		unsigned char tmp[7], data_write[7];
+		
 
-		if(!i2cread(MPU9150_ADDR, ACCEL_XOUT_H, 6, data_write))
-    {
-			accel[0]=((((signed short int)data_write[0])<<8) | data_write[1]) + Accel_Xout_Offset;
-			accel[1]=((((signed short int)data_write[2])<<8) | data_write[3]) + Accel_Yout_Offset;
-			accel[2]=((((signed short int)data_write[4])<<8) | data_write[5]) + Accel_Zout_Offset;
-	  	    
-			init_ax=((float)accel[0]) * ACCEL_2_SACLE_PARAMETER;	   //单位转化成重力加速度的单位：g
-			init_ay=((float)accel[1]) * ACCEL_2_SACLE_PARAMETER;
-      init_az=((float)accel[2]) * ACCEL_2_SACLE_PARAMETER;
-
-		}
-      tmp[6]=0x00;
-      data_write[6]=0x01;
-			i2cwrite(COMPASS_ADDR, COMPASS_CNTL, 1, data_write+6);	 //开启compass：single measurement mode
-			delay_ms(10);  //wait data ready
-      i2cread(COMPASS_ADDR, COMPASS_ST1, 1, tmp+6);
-      if(tmp[6] == 1)
-      {
-        i2cread(COMPASS_ADDR, COMPASS_HXL, 6, tmp);
-				mag[0] = (((signed short int)tmp[1]) << 8) | tmp[0];
-        mag[1] = (((signed short int)tmp[3]) << 8) | tmp[2];
-        mag[2] = (((signed short int)tmp[5]) << 8) | tmp[4];
-
-				mag[0] = ((long)mag[0] * mag_sens_adj_val[0]) >> 8;  //灵敏度调整
-        mag[1] = ((long)mag[1] * mag_sens_adj_val[1]) >> 8;
-        mag[2] = ((long)mag[2] * mag_sens_adj_val[2]) >> 8;
-
-				init_mx =(float)mag[1] * MXgain + MXoffset;		//转换坐标轴				
-        init_my =(float)mag[0] * MYgain + MYoffset;
-        init_mz =(float)-mag[2] * MZgain + MZoffset;
-				//开启compass：single measurement mode
-				i2cwrite(COMPASS_ADDR, COMPASS_CNTL, 1, data_write+6);	 
-			}
+	
 			//根据三角函数关系算出初始欧拉角，注意偏航角的计算要考虑倾角补偿
 			init_Roll  =  atan2(init_ay, init_az);
 			init_Pitch = -asin(init_ax);              //init_Pitch = asin(ax / 1);      
 			init_Yaw   = -atan2(init_mx*cos(init_Roll) + init_my*sin(init_Roll)*sin(init_Pitch) + init_mz*sin(init_Roll)*cos(init_Pitch),
-                      init_my*cos(init_Pitch) - init_mz*sin(init_Pitch));      			//atan2(mx, my);
+                          init_my*cos(init_Pitch) - init_mz*sin(init_Pitch));      			//atan2(mx, my);
 			
 			q0 = cos(0.5*init_Roll)*cos(0.5*init_Pitch)*cos(0.5*init_Yaw) + sin(0.5*init_Roll)*sin(0.5*init_Pitch)*sin(0.5*init_Yaw);  //w
 			q1 = sin(0.5*init_Roll)*cos(0.5*init_Pitch)*cos(0.5*init_Yaw) - cos(0.5*init_Roll)*sin(0.5*init_Pitch)*sin(0.5*init_Yaw);  //x   绕x轴旋转是roll
@@ -446,7 +127,8 @@ void AHRSupdate(float gx, float gy, float gz, float ax, float ay, float az, floa
     float ex, ey, ez;
 		float q0q0,q0q1,q0q2,q0q3,q1q1,q1q2,q1q3,q2q2,q2q3,q3q3;
 		static float tempq0 = 0, tempq1 = 0, tempq2 = 0, tempq3 = 0;
-
+		static uint32_t last_timestamp = 0, now_timestamp = 0;
+	
 		if(IsQuaternionInit == 0)
 		{
 				init_quaternion();
@@ -462,7 +144,21 @@ void AHRSupdate(float gx, float gy, float gz, float ax, float ay, float az, floa
 		q1q3 = q1*q3;
 		q2q2 = q2*q2;   
 		q2q3 = q2*q3;
-		q3q3 = q3*q3;          
+		q3q3 = q3*q3;       
+
+			//------------ 读取解算时间 ---------------
+//		now_timestamp = CPU_TS32_to_uSec(OS_TS_GET());  	  //读取时间
+//		if(now_timestamp < last_timestamp)  //定时器溢出过了。
+//		{ 
+//			halfT =  ((float)(now_timestamp + (0xffffffff- last_timestamp)) / 2000000.0f);	
+//		}
+//		else
+//		{
+//			halfT =  ((float)(now_timestamp - last_timestamp) / 2000000.0f);
+//		}
+//		last_timestamp = now_timestamp;	 //更新时间
+//		printf("halfT:%d\n",(int)halfT*1000);
+		
 /*归一化测量值，加速度计和磁力计的单位是什么都无所谓，因为它们在此被作了归一化处理*/        
         //normalise the measurements
 			if(!(ax == 0 && ay == 0 && az == 0))
@@ -557,71 +253,11 @@ void AHRSupdate(float gx, float gy, float gz, float ax, float ay, float az, floa
 		_euler.roll  = atan2(2*q2*q3 + 2*q0*q1, -2*q1*q1 - 2*q2*q2 + 1) * RAD_TO_DEGREE; //滚动角，绕x轴转动
 		_euler.yaw   = atan2(2*q1*q2 + 2*q0*q3, -2*q2*q2 - 2*q3*q3 + 1) * RAD_TO_DEGREE;  //偏航角，绕z轴转动
 
-    printf("Yaw=%f, Pitch=%f, Roll=%f \n\r", _euler.yaw, _euler.pitch, _euler.roll);
  
 }
 
-
 /*******************************************************************************
-* Function Name  : get_mpu9150_data
-* Description    : 读取mpu9150的加速度计 陀螺仪 磁力计数据并做校准和滤波.
-* Input          : None
-* Output         : None
-* Return         : None
-*******************************************************************************/
-void get_mpu9150_data(void)
-{
-   signed short int gyro[3], accel[3], mag[3]; 
-   unsigned char tmp[7], data_write[14];
-
-   if(!i2cread(MPU9150_ADDR, ACCEL_XOUT_H, 14, data_write))
-   {
-			accel[0]=(((signed short int)data_write[0])<<8) | data_write[1];
-			accel[1]=(((signed short int)data_write[2])<<8) | data_write[3];
-			accel[2]=(((signed short int)data_write[4])<<8) | data_write[5];
-			gyro[0] =(((signed short int)data_write[8])<<8) | data_write[9];
-			gyro[1] =(((signed short int)data_write[10])<<8) | data_write[11];
-			gyro[2] =(((signed short int)data_write[12])<<8) | data_write[13];
-			
-			init_ax=(float)(accel[0] + Accel_Xout_Offset);   	  
-			init_ay=(float)(accel[1] + Accel_Yout_Offset);
-			init_az=(float)(accel[2] + Accel_Zout_Offset);  		 
-			init_gx=(float)gyro[0] * GYRO_2000_SCALE_PARAMETER * DEGREE_TO_RAD;    //单位转化成：弧度/s
-			init_gy=(float)gyro[1] * GYRO_2000_SCALE_PARAMETER * DEGREE_TO_RAD;
-			init_gz=(float)gyro[2] * GYRO_2000_SCALE_PARAMETER * DEGREE_TO_RAD;
-		
-			_euler.rate[0] = init_gx;
-			_euler.rate[1] = init_gy;
-			_euler.rate[2] = init_gz;
-		 
-      tmp[6]=0x00;
-      data_write[6]=0x01;
-      i2cread(COMPASS_ADDR, COMPASS_ST1, 1, tmp+6);
-      if(tmp[6] == 1)
-      {
-        i2cread(COMPASS_ADDR, COMPASS_HXL, 6, tmp);//读取compass
-				mag[0] = (((signed short int)tmp[1]) << 8) | tmp[0];
-        mag[1] = (((signed short int)tmp[3]) << 8) | tmp[2];
-        mag[2] = (((signed short int)tmp[5]) << 8) | tmp[4];
-
-				mag[0] = ((long)mag[0] * mag_sens_adj_val[0]) >> 8;  //灵敏度调整
-        mag[1] = ((long)mag[1] * mag_sens_adj_val[1]) >> 8;
-        mag[2] = ((long)mag[2] * mag_sens_adj_val[2]) >> 8;
-				//修正magnetometer
-				init_mx =(float)mag[1] * MXgain + MXoffset;		//转换坐标轴				
-        init_my =(float)mag[0] * MYgain + MYoffset;
-        init_mz =(float)-mag[2] * MZgain + MZoffset;
-//				//进行x y轴的校准，未对z轴进行校准，参考ST的校准方法 
-//         init_mx =(float)1.046632*mag[0]-1.569948;						
-//         init_my =(float)mag[1]-8;
-//         init_mz =(float)mag[2];
-				i2cwrite(COMPASS_ADDR, COMPASS_CNTL, 1, data_write+6);	 //开启compass：single measurement mode
-	  }
-
-   }
-}
-/*******************************************************************************
-* Function Name  : Get_Attitude
+* Function Name  : ahrs_update_euler
 * Description    : 更新姿态
 * Input          : None
 * Output         : None
@@ -629,10 +265,12 @@ void get_mpu9150_data(void)
 *******************************************************************************/
 void ahrs_update_euler(void)
 {
-	 get_mpu9150_data();
+	 CPU_SR_ALLOC();
+	 GetMotion9();
+	 
+	 CPU_CRITICAL_ENTER();
    AHRSupdate(init_gx, init_gy, init_gz, init_ax, init_ay, init_az, init_mx, init_my, init_mz);
+	 CPU_CRITICAL_EXIT();
 }
-
-
 
 /***************************** 阿波罗科技 www.apollorobot.cn (END OF FILE) *********************************/

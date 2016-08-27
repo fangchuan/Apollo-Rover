@@ -21,8 +21,8 @@
 //project macro define  
 #define  MOTION_DRIVER_TARGET_STM32
 
-#define  AHRS_USE_DMP       1
-#define  AHRS_USE_SOFTWARE  0
+#define  AHRS_USE_DMP       0
+#define  AHRS_USE_SOFTWARE  1
 
 #if      AHRS_USE_DMP
 		#define  MPU9150
@@ -63,6 +63,22 @@
 #define Accel_4_Scale_Factor    8192.0f
 #define Accel_8_Scale_Factor    4096.0f
 #define Accel_16_Scale_Factor   2048.0f
+#define MAG_GAIN_230            230
+#define MAG_GAIN_330            330
+#define MAG_GAIN_390            390
+#define MAG_GAIN_440            440
+#define MAG_GAIN_660            660
+#define MAG_GAIN_820            820
+#define MAG_GAIN_1090           1090
+#define MAG_GAIN_1370           1370
+#define MAG_GAIN_230_PARAMETER  0.00435
+#define MAG_GAIN_330_PARAMETER  0.00303
+#define MAG_GAIN_390_PARAMETER  0.00256
+#define MAG_GAIN_440_PARAMETER  0.00227
+#define MAG_GAIN_660_PARAMETER  0.00152
+#define MAG_GAIN_820_PARAMETER  0.00122
+#define MAG_GAIN_1090_PARAMETER 0.00092
+#define MAG_GAIN_1370_PARAMETER 0.00073
 #define GYRO_250_SCALE_PARAMETER   (float)1/Gyro_250_Scale_Factor
 #define GYRO_500_SCALE_PARAMETER   (float)1/Gyro_500_Scale_Factor
 #define GYRO_1000_SCALE_PARAMETER  (float)1/Gyro_1000_Scale_Factor
@@ -79,12 +95,12 @@
 #define  GPS_UART_SUB_PRIORITY 	1
 #define  MPU9150_PRE_PRIORITY		1
 #define  MPU9150_SUB_PRIORITY		0
-#define  SD_SDIO_PRE_PRIORITY   1
+#define  SD_SDIO_PRE_PRIORITY   2
 #define  SD_SDIO_SUB_PRIORITY   1
-#define  SD_DMA2_PRE_PRIORITY   1
+#define  SD_DMA2_PRE_PRIORITY   2
 #define  SD_DMA2_SUB_PRIORITY   2
-#define  RECEIVER_PRE_PRIORITY  2
-#define  RECEIVER_SUB_PRIORITY  0
+#define  RECEIVER_PRE_PRIORITY  0
+#define  RECEIVER_SUB_PRIORITY  2
 //
 #define  MOTOR_MAX_NUM   2
 #define  MOTOR_LEFT      0
@@ -158,10 +174,10 @@ typedef struct _Car{
 }_car;
 
 typedef struct {
-				unsigned short  ch1_val;
-				unsigned short  ch2_val;
+				float  ch1_val;
+				float  ch2_val;
 				unsigned short  ch3_val;
-				unsigned short  ch4_val;
+				float  ch4_val;
 }_RemoteControl;
 /*********************************************************************
 *

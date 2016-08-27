@@ -67,16 +67,15 @@ static void i2c_Delay(void)
 	uint8_t i;
 
 	/*　
-		CPU主频168MHz时，在内部Flash运行, MDK工程不优化。用台式示波器观测波形。
-		循环次数为5时，SCL频率 = 1.78MHz (读耗时: 92ms, 读写正常，但是用示波器探头碰上就读写失败。时序接近临界)
-		循环次数为10时，SCL频率 = 1.1MHz (读耗时: 138ms, 读速度: 118724B/s)
-		循环次数为30时，SCL频率 = 440KHz， SCL高电平时间1.0us，SCL低电平时间1.2us
-
-		上拉电阻选择2.2K欧时，SCL上升沿时间约0.5us，如果选4.7K欧，则上升沿约1us
-
-		实际应用选择400KHz左右的速率即可
+	 	下面的时间是通过安富莱AX-Pro逻辑分析仪测试得到的。
+		CPU主频72MHz时，在内部Flash运行, MDK工程不优化
+		循环次数为10时，SCL频率 = 205KHz 
+		循环次数为7时，SCL频率 = 347KHz， SCL高电平时间1.5us，SCL低电平时间2.87us 
+	 	循环次数为5时，SCL频率 = 421KHz， SCL高电平时间1.25us，SCL低电平时间2.375us 
+        
+    IAR工程编译效率高，不能设置为7
 	*/
-	for (i = 0; i < 30; i++);
+	for (i = 0; i < 10; i++);
 }
 
 /*
@@ -395,5 +394,53 @@ int8_t i2cWriteOneByte(uint8_t addr, uint8_t reg, uint8_t data)
     i2c_WaitAck();
     i2c_Stop();
     return 0;
+}
+/*
+*********************************************************************************************************
+*	函 数 名: i2cWriteBits
+*	功能说明: 读 修改 写 指定设备 指定寄存器一个字节 中的多个位
+*	形    参: dev  目标设备地址
+*       		reg	   寄存器地址
+*						bitStart  目标字节的起始位
+*						length   位长度
+*						data    存放改变目标字节位的值
+*	返 回 值: 返回值 0 表示正确， 返回-1表示未写成功
+*********************************************************************************************************
+*/
+
+int8_t i2cWriteBits(uint8_t addr, uint8_t reg, uint8_t bitStart, uint8_t length, uint8_t data)
+{
+
+    uint8_t b;
+    if (!i2cread(addr, reg, 1, &b)) {
+        uint8_t mask = (0xFF << (bitStart + 1)) | 0xFF >> ((8 - bitStart) + length - 1);
+        data <<= (8 - length);
+        data >>= (7 - bitStart);
+        b &= mask;
+        b |= data;
+        return i2cWriteOneByte(addr, reg, b);
+    } else {
+        return -1;
+    }
+}
+/*
+*********************************************************************************************************
+*	函 数 名: i2cwriteBit
+*	功能说明: 读 修改 写 指定设备 指定寄存器一个字节 中的1个位
+*	形    参: dev  目标设备地址
+*       		reg	   寄存器地址
+						bitNum  要修改目标字节的bitNum位
+						data  为0 时，目标位将被清0 否则将被置位
+*	返 回 值: 返回值 0 表示正确， 返回-1表示未写成功
+*********************************************************************************************************
+*/
+int8_t  i2cWriteBit(uint8_t addr, uint8_t reg, uint8_t bitNum, uint8_t data)
+{
+    uint8_t b;
+    
+    i2cread(addr, reg, 1, &b);
+    b = (data != 0) ? (b | (1 << bitNum)) : (b & ~(1 << bitNum));
+    
+    return i2cWriteOneByte(addr, reg, b);
 }
 /***************************** 阿波罗科技 www.apollorobot.cn (END OF FILE) *********************************/

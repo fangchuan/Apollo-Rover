@@ -33,6 +33,7 @@
 extern void attitudeControllerInit(void);
 extern bool attitudeControllerTest(void);
 extern void SetDesiredAngle(float rollDesired, float pitchDesired, float yawDesired);
+extern void SetDesiredYawRate( float yawRateDesired);
 //void RollCorrectRatePID(float rollRateActual, float rollRateDesired);
 //void PitchCorrectRatePID(float pitchRateActual, float pitchRateDesired);
 //void YawCorrectRatePID(float yawRateActual, float yawRateDesired);

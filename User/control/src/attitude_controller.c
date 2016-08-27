@@ -69,9 +69,9 @@ void attitudeControllerInit()
 		if(isInit)
 			return;
 
-		pidInit(&pidRollRate, 0, PID_ROLL_RATE_KP, PID_ROLL_RATE_KI, PID_ROLL_RATE_KD, IMU_UPDATE_DT);
+		pidInit(&pidRollRate,  0, PID_ROLL_RATE_KP,  PID_ROLL_RATE_KI,  PID_ROLL_RATE_KD, IMU_UPDATE_DT);
 		pidInit(&pidPitchRate, 0, PID_PITCH_RATE_KP, PID_PITCH_RATE_KI, PID_PITCH_RATE_KD, IMU_UPDATE_DT);
-		pidInit(&pidYawRate, 0, PID_YAW_RATE_KP, PID_YAW_RATE_KI, PID_YAW_RATE_KD, IMU_UPDATE_DT);
+		pidInit(&pidYawRate,   0, PID_YAW_RATE_KP,   PID_YAW_RATE_KI,   PID_YAW_RATE_KD, IMU_UPDATE_DT);
 		pidSetIntegralLimit(&pidRollRate, PID_ROLL_RATE_INTEGRATION_LIMIT);
 		pidSetIntegralLimit(&pidPitchRate, PID_PITCH_RATE_INTEGRATION_LIMIT);
 		pidSetIntegralLimit(&pidYawRate, PID_YAW_RATE_INTEGRATION_LIMIT);
@@ -122,6 +122,17 @@ void SetDesiredAngle(float rollDesired, float pitchDesired, float yawDesired)
 		angleDesired.x = rollDesired;
 	  angleDesired.y = pitchDesired;
 	  angleDesired.z = yawDesired;
+}
+/*********************************************************************************************************
+*	函 数 名: SetDesiredYawRate
+*	功能说明: 设置Z轴期望角速度
+*	形    参：yawRateDesired期望航向角
+*	返 回 值: 
+*********************************************************************************************************
+*/
+void SetDesiredYawRate( float yawRateDesired)
+{
+	  rateDesired.z = yawRateDesired;
 }
 /*********************************************************************************************************
 *	函 数 名: PitchCorrectRatePID
@@ -259,14 +270,16 @@ int16_t PitchStabilizer(void)
 /*********************************************************************************************************
 *	函 数 名: YawStabilizer
 *	功能说明: 偏航角yaw的控制
+*           直接进行角速度控制，不再积分出期望偏航角再进行串级控制
 *	形    参：
 *	返 回 值: 
 *********************************************************************************************************
 */
 int16_t YawStabilizer(void)
 {
+	  float current_yaw_rate = _euler.rate[2] * RAD_TO_DEGREE;
 		YawCorrectAttitudePID(_euler.yaw, angleDesired.z, &rateDesired.z);	
-		YawCorrectRatePID(_euler.rate[2], rateDesired.z);
+		YawCorrectRatePID(current_yaw_rate, rateDesired.z);
 		return yawOutput;
 }
 

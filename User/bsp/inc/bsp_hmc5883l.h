@@ -10,7 +10,7 @@
 *		版本号  日期       作者    说明
 *		v1.0    2012-10-12 armfly  ST固件库版本 V2.1.0
 *
-*	Copyright (C), 2012-2013, 安富莱电子 www.armfly.com
+*	Copyright (C), 2015-2020, 阿波罗科技  www.apollorobot.cn
 *
 *********************************************************************************************************
 */
@@ -18,8 +18,22 @@
 #ifndef _BSP_HMC5883L_H
 #define _BSP_HMC5883L_H
 
-#define HMC5883L_SLAVE_ADDRESS    0x3C		/* I2C从机地址 */
+#define HMC5883L_SLAVE_ADDRESS        0x1E/* 都采用7bit地址 */
+#define HMC5883L_CONFIG_A_REGISTER    0x00
+#define HMC5883L_CONFIG_B_REGISTER    0x01
+#define HMC5883L_MODE_REGISTER        0x02
+#define HMC5883L_X_OUT_REGISTER       0x03
+#define HMC5883L_Y_OUT_REGISTER       0x07
+#define HMC5883L_Z_OUT_REGISTER       0x05
+#define HMC5883L_STATU_REGITER        0x09
+#define HMC5883L_ID_REGISTER          0x0A
 
+#define HMC5883L_CONFIG_A_DEFAULT     0x70
+#define HMC5883L_CONFIG_B_DEFAULT     0x20
+#define HMC5883L_MODE_DEFAULT         0x00
+#define HMC5883L_ID_A_VALUE           0x48
+#define HMC5883L_ID_B_VALUE           0x34
+#define HMC5883L_ID_C_VALUE           0x33
 //****************************************
 // 定义HMC5883L内部地址
 //****************************************
@@ -46,18 +60,15 @@ typedef struct
 	uint8_t CfgRegC;
 	uint8_t ModeReg;
 	
-	uint8_t IDReg[3+1];	
+	uint8_t IDReg[3];	
 }HMC5883L_T;
 
 extern HMC5883L_T g_tMag;
 
-void bsp_InitHMC5883L(void);
-
-void HMC5883L_ReadData(void);
-void HMC5883L_WriteByte(uint8_t _ucRegAddr, uint8_t _ucRegData);
-uint8_t HMC5883L_ReadByte(uint8_t _ucRegAddr);
-
+extern void bsp_InitHMC5883L(void);
+extern void HMC5883L_GetRaw(int16_t *x,int16_t *y,int16_t *z);
+extern void HMC5883_Check(void) ;
 #endif
 
-/***************************** 安富莱电子 www.armfly.com (END OF FILE) *********************************/
+/***************************** 阿波罗科技 www.apollorobot.cn (END OF FILE) *********************************/
 
