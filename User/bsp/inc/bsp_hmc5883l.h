@@ -53,21 +53,29 @@ typedef struct
 	int16_t Y_Max;
 	int16_t Z_Max;	
 
-	uint8_t	Status;
+	float X_Offset;
+	float Y_Offset;
+	float Z_Offset;
 	
-	uint8_t CfgRegA;
-	uint8_t CfgRegB;
-	uint8_t CfgRegC;
-	uint8_t ModeReg;
-	
-	uint8_t IDReg[3];	
-}HMC5883L_T;
+	float X_Gain;
+	float Y_Gain;
+	float Z_Gain;
+//	uint8_t	Status;
+//	
+//	uint8_t CfgRegA;
+//	uint8_t CfgRegB;
+//	uint8_t CfgRegC;
+//	uint8_t ModeReg;
+//	
+//	uint8_t IDReg[3];	
+}_Hmc5883l;
 
-extern HMC5883L_T g_tMag;
 
 extern void bsp_InitHMC5883L(void);
 extern void HMC5883L_GetRaw(int16_t *x,int16_t *y,int16_t *z);
+extern void HMC5883L_Correct(uint32_t ms_counts);
 extern void HMC5883_Check(void) ;
+extern void DispHmc5883Data(void);
 #endif
 
 /***************************** °¢²¨ÂÞ¿Æ¼¼ www.apollorobot.cn (END OF FILE) *********************************/

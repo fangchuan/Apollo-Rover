@@ -66,7 +66,18 @@ V1.0    2016-08-02      fc        1. 添加bsp_encoder,bsp_motor,bsp_gps,bsp_exti,
 	   2016-08-26                 1.IIC总线上的传感器都只能使用7bit地址
 	                              2.放弃MPU9150DMP方法，MPU6050+HMC5883L软件结算偏航正确，且ahrs_update_euler()关中断不影响RC接收
 								  3.YAW控制采用速率控制与角度控制相结合的方案
-								  
+
+	   2016-08-31                 1.HMC5883L存在软磁偏移，一周偏航角不规则
+							
+	   2016-09-08                 1.八字法校准后仍然存在软磁偏移，而且在空中走完八字后，角速度输出也出现问题
+	                              2.将磁力计增益改为660/guass
+								  3.大幅度运动会导致角速度数据出错, 滑动FIFO有问题
+
+	   2016-09-10                 1.水平面校准yaw没问题，但是Roll Pitch倾角补偿没做处理
+	                              2.另一个解决方案就是IMU解算，然后yaw再单独倾角补偿结算
+								  3.采用manual和automatic两种模式控制，manual则遥控器输出是yaw_target_rate,automatic则是自动确定下一航点方向
+
+
 APOLLOROBOTROVER引脚分配:			
 	Motor_Left: PA6-TIM3_CH1          Encoder_Left: PA0-TIM2_CH1
 				PA7-TIM3_CH2		  Encoder_Left: PA1-TIM2_CH2

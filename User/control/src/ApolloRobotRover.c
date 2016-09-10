@@ -20,6 +20,7 @@
 #include "bsp_gps.h"
 #include "bsp_motor.h"
 #include "bsp_hmc5883l.h"
+#include "bsp_led.h"
 #include "motion_driver_9150.h"
 #include "ahrs.h"
 #include "pid.h"
@@ -79,6 +80,10 @@ void ArRoverInit(void)
 		 printf("DMP initialize error!\n");
 	 }	 
 #endif
+	 //Correct the hmc5883l for 10s
+	  bsp_LedOn(1);
+	  HMC5883L_Correct(10000);
+	  bsp_LedOff(1);
 	 
 		attitudeControllerInit();
 	
@@ -154,13 +159,13 @@ void UpdateRC(void)
 void RunAttitudeController(void)
 {
 		float yaw_pid_out = 0;
-		float target_yaw = 0;
+		float target_yaw_rate = 0;
 	
   	//Set desired yaw rate
 		SetDesiredYawRate(_rc.ch4_val);
-    target_yaw = _euler.yaw + _rc.ch4_val * ARROVER_LOOP_TIME;
+    target_yaw_rate = _rc.ch4_val * ARROVER_LOOP_TIME;
 		//set desired angle
-		SetDesiredAngle(_rc.ch1_val, _rc.ch2_val, target_yaw);
+		SetDesiredAngle(_rc.ch1_val, _rc.ch2_val, target_yaw_rate);
 	
 		//run the attitude controller
 		yaw_pid_out = YawStabilizer();

@@ -121,7 +121,7 @@ void SetDesiredAngle(float rollDesired, float pitchDesired, float yawDesired)
 {
 		angleDesired.x = rollDesired;
 	  angleDesired.y = pitchDesired;
-	  angleDesired.z = yawDesired;
+	  angleDesired.z += yawDesired;
 }
 /*********************************************************************************************************
 *	º¯ Êý Ãû: SetDesiredYawRate

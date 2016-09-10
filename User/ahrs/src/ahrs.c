@@ -30,9 +30,9 @@
 */
 
 
-#define  Kp          10.0f     //proportional gain governs rate of convergence to accelerometer/magnetometer
-#define  Ki          0.25f   //integral gain governs rate of convergence of gyroscope biases
-float    halfT = 0.005;
+#define  Kp          30.0f     //proportional gain governs rate of convergence to accelerometer/magnetometer
+#define  Ki          0.01f   //integral gain governs rate of convergence of gyroscope biases
+float    halfT = 0.005f;
 ///#define	 halfT 			 0.005f  //half the sample period,halfT 0.5f需要根据具体姿态更新周期来调整，T是姿态更新周期，T*角速度=微分角度
 /*********************************************************************
 *
@@ -71,9 +71,9 @@ static void GetMotion9(void)
 	     init_gx = (float)buffer[3] * GYRO_2000_SCALE_PARAMETER * DEGREE_TO_RAD;
 	     init_gy = (float)buffer[4] * GYRO_2000_SCALE_PARAMETER * DEGREE_TO_RAD;
 	     init_gz = (float)buffer[5] * GYRO_2000_SCALE_PARAMETER * DEGREE_TO_RAD;
-	     init_mx = (float)buffer[6] * MAG_GAIN_230_PARAMETER;
-	     init_my = (float)buffer[7] * MAG_GAIN_230_PARAMETER;
-	     init_mz = (float)buffer[8] * MAG_GAIN_230_PARAMETER;
+	     init_mx = (float)buffer[6] * MAG_GAIN_660_PARAMETER;
+	     init_my = (float)buffer[7] * MAG_GAIN_660_PARAMETER;
+	     init_mz = (float)buffer[8] * MAG_GAIN_660_PARAMETER;
 	
 	     _euler.acc[0] = init_ax;
 	     _euler.acc[1] = init_ay;

@@ -22,8 +22,8 @@
 #include "bsp.h"
 
 int16_t  HMC5883_FIFO[3][11]; //磁力计滑动滤波窗口
-
-
+static uint8_t   isCorrectted = 0;
+static _Hmc5883l _hmc5883l;
 
 /*
 *********************************************************************************************************
@@ -185,14 +185,14 @@ void bsp_InitHMC5883L(void)
 		i2cWriteOneByte(HMC5883L_SLAVE_ADDRESS, HMC5883L_CONFIG_B_REGISTER, HMC5883L_CONFIG_B_DEFAULT);//±1.3GUASS	
 		i2cWriteOneByte(HMC5883L_SLAVE_ADDRESS, HMC5883L_MODE_REGISTER, HMC5883L_MODE_DEFAULT);	//连续测量模式
 	#else	/* 自校准模式 */
-		i2cWriteOneByte(HMC5883L_SLAVE_ADDRESS, HMC5883L_CONFIG_A_REGISTER, HMC5883L_MODE_DEFAULT + 2);	
+		i2cWriteOneByte(HMC5883L_SLAVE_ADDRESS, HMC5883L_CONFIG_A_REGISTER, HMC5883L_CONFIG_A_DEFAULT + 1);	
 		i2cWriteOneByte(HMC5883L_SLAVE_ADDRESS, HMC5883L_CONFIG_B_REGISTER, HMC5883L_CONFIG_B_DEFAULT);	
 		i2cWriteOneByte(HMC5883L_SLAVE_ADDRESS, HMC5883L_MODE_REGISTER, HMC5883L_MODE_DEFAULT);		
 	#endif		
 	
 	  HMC5883L_SetMode(0);//连续测量模式
 		HMC5883L_SetDOR(6);  //75hz 更新率
-    HMC5883L_SetGain(7); //±8.1guass  gain=230
+    HMC5883L_SetGain(3); //±2.5guass  gain=660
 		HMC5883_Check(); //检测HMC5883是否存在
 
 		HMC5883L_FIFOInit();//fifo初始化
@@ -208,14 +208,124 @@ void bsp_InitHMC5883L(void)
 void HMC5883L_GetRaw(int16_t *x,int16_t *y,int16_t *z) 
 {
    unsigned char vbuff[6] = {0};
+	 int16_t  magx,magy, magz;
 	 
    i2cread(HMC5883L_SLAVE_ADDRESS, HMC5883L_X_OUT_REGISTER, 6, vbuff);
-   HMC5883L_NewValues(((int16_t)vbuff[0] << 8)|vbuff[1], ((int16_t)vbuff[4] << 8)|vbuff[5], ((int16_t)vbuff[2] << 8)|vbuff[3]);
+//   HMC5883L_NewValues(((int16_t)vbuff[0] << 8)|vbuff[1], ((int16_t)vbuff[4] << 8)|vbuff[5], ((int16_t)vbuff[2] << 8)|vbuff[3]);
+	 magx = ((int16_t)vbuff[0] << 8)| vbuff[1];
+	 magy = ((int16_t)vbuff[4] << 8)| vbuff[5];
+	 magz = ((int16_t)vbuff[2] << 8)| vbuff[3];
 	 
-   *x = HMC5883_FIFO[0][10] ;
-   *y = HMC5883_FIFO[1][10] ;
-   *z = HMC5883_FIFO[2][10] ;
+	 if(isCorrectted){
+		 *x = magx * _hmc5883l.X_Gain + _hmc5883l.X_Offset;
+		 *y = magy * _hmc5883l.Y_Gain + _hmc5883l.Y_Offset;
+		 *z = magz * _hmc5883l.Z_Gain + _hmc5883l.Z_Offset;
+	 }
+	 else{
+//	   *x = HMC5883_FIFO[0][10];
+//		 *y = HMC5883_FIFO[1][10];
+//		 *z = HMC5883_FIFO[2][10];
+		   *x = magx;
+		   *y = magy;
+		   *z = magz;
+			 
+	 }
 }
-
+/**************************实现函数********************************************
+*函数原型:	  HMC5883L_Correct
+*功　　能:	  校准HMC5883L各轴比例系数和偏移
+输入参数：   ms_counts
+输出参数：  无
+*******************************************************************************/
+void HMC5883L_Correct(uint32_t ms_counts)
+{
+	   uint8_t vbuff[6];
+	   if(isCorrectted)
+			 return ;
+		 
+		 do{
+			  i2cread(HMC5883L_SLAVE_ADDRESS, HMC5883L_X_OUT_REGISTER, 6, vbuff);
+			  _hmc5883l.X = (int16_t)vbuff[0] <<8 | vbuff[1];
+			  _hmc5883l.Y = (int16_t)vbuff[4] <<8 | vbuff[5];
+			  _hmc5883l.Z = (int16_t)vbuff[2] <<8 | vbuff[3];;
+			 
+			  if(_hmc5883l.X > _hmc5883l.X_Max){
+					_hmc5883l.X_Max = _hmc5883l.X;
+				}
+				else{
+					if(_hmc5883l.X < _hmc5883l.X_Min)
+						_hmc5883l.X_Min = _hmc5883l.X;
+				}
+				
+				if(_hmc5883l.Y > _hmc5883l.Y_Max){
+					_hmc5883l.Y_Max = _hmc5883l.Y;
+				}
+				else{
+					if(_hmc5883l.Y < _hmc5883l.Y_Min)
+						_hmc5883l.Y_Min = _hmc5883l.Y;
+				}
+				
+			 if(_hmc5883l.Y > _hmc5883l.Y_Max){
+					_hmc5883l.Y_Max = _hmc5883l.Y;
+				}
+				else{
+					if(_hmc5883l.Z < _hmc5883l.Z_Min)
+						_hmc5883l.Z_Min = _hmc5883l.Z;
+				}
+				
+				bsp_DelayMS(1);
+		 }while(ms_counts --);
+		 
+		 isCorrectted = 1;
+		 
+ //将有最大响应的轴的增益设为1
+  if(((_hmc5883l.X_Max - _hmc5883l.X_Min) >= (_hmc5883l.Y_Max - _hmc5883l.Y_Min)) && 
+		 ((_hmc5883l.X_Max - _hmc5883l.X_Min) >= (_hmc5883l.Z_Max - _hmc5883l.Z_Min)))
+  {
+    _hmc5883l.X_Gain = 1.0;
+		_hmc5883l.Y_Gain = (float)(_hmc5883l.X_Max - _hmc5883l.X_Min) / (_hmc5883l.Y_Max - _hmc5883l.Y_Min);
+		_hmc5883l.Z_Gain = (float)(_hmc5883l.X_Max - _hmc5883l.X_Min) / (_hmc5883l.Z_Max - _hmc5883l.Z_Min);
+		_hmc5883l.X_Offset = -0.5 * (_hmc5883l.X_Max + _hmc5883l.X_Min);
+		_hmc5883l.Y_Offset = -0.5 * _hmc5883l.Y_Gain * (_hmc5883l.Y_Max + _hmc5883l.Y_Min);
+		_hmc5883l.Z_Offset = -0.5 * _hmc5883l.Z_Gain * (_hmc5883l.Z_Max + _hmc5883l.Z_Min);	 
+  }
+	if(((_hmc5883l.Y_Max - _hmc5883l.Y_Min) >= (_hmc5883l.X_Max - _hmc5883l.X_Min)) && 
+		 ((_hmc5883l.Y_Max - _hmc5883l.Y_Min) >= (_hmc5883l.Z_Max - _hmc5883l.Z_Min)))
+  {
+    _hmc5883l.Y_Gain = 1.0;
+		_hmc5883l.X_Gain = (float)(_hmc5883l.Y_Max - _hmc5883l.Y_Min) / (_hmc5883l.X_Max - _hmc5883l.X_Min);
+		_hmc5883l.Z_Gain = (float)(_hmc5883l.Y_Max - _hmc5883l.Y_Min) / (_hmc5883l.Z_Max - _hmc5883l.Z_Min);
+		_hmc5883l.Y_Offset = -0.5 * (_hmc5883l.Y_Max + _hmc5883l.Y_Min);
+		_hmc5883l.X_Offset = -0.5 * _hmc5883l.X_Gain * (_hmc5883l.X_Max + _hmc5883l.X_Min);
+		_hmc5883l.Z_Offset = -0.5 * _hmc5883l.Z_Gain * (_hmc5883l.Z_Max + _hmc5883l.Z_Min);	 
+  }
+	if(((_hmc5883l.Z_Max - _hmc5883l.Z_Min) >= (_hmc5883l.Y_Max - _hmc5883l.Y_Min)) && 
+		 ((_hmc5883l.Z_Max - _hmc5883l.Z_Min) >= (_hmc5883l.X_Max - _hmc5883l.X_Min)))
+  {
+    _hmc5883l.Z_Gain = 1.0;
+		_hmc5883l.Y_Gain = (float)(_hmc5883l.Z_Max - _hmc5883l.Z_Min) / (_hmc5883l.Y_Max - _hmc5883l.Y_Min);
+		_hmc5883l.Z_Gain = (float)(_hmc5883l.Z_Max - _hmc5883l.Z_Min) / (_hmc5883l.X_Max - _hmc5883l.X_Min);
+		_hmc5883l.Z_Offset = -0.5 * (_hmc5883l.Z_Max + _hmc5883l.Z_Min);
+		_hmc5883l.Y_Offset = -0.5 * _hmc5883l.Y_Gain * (_hmc5883l.Y_Max + _hmc5883l.Y_Min);
+		_hmc5883l.X_Offset = -0.5 * _hmc5883l.X_Gain * (_hmc5883l.X_Max + _hmc5883l.X_Min);	 
+  }
+		 
+}
+/*********************************************************************************************************
+*	函 数 名: DispHmc5883Data
+*	功能说明: 打印磁力计校准数据
+*	形    参：
+*	返 回 值: 
+*********************************************************************************************************
+*/
+void DispHmc5883Data(void)
+{
+		printf("X_Offset:%f\n", _hmc5883l.X_Offset);
+		printf("Y_Offset:%f\n", _hmc5883l.Y_Offset);
+		printf("Z_Offset:%f\n", _hmc5883l.Z_Offset);
+		printf("X_Gain:%f\n", _hmc5883l.X_Gain);
+		printf("Y_Gain:%f\n", _hmc5883l.Y_Gain);
+		printf("Z_Gain:%f\n", _hmc5883l.Z_Gain);
+}
 /***************************** 阿波罗科技 www.apollorobot.cn (END OF FILE) *********************************/
 

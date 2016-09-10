@@ -135,12 +135,12 @@ static void MPU6050_InitGyro_Offset(void)
 			tempgz+= temp[5];
 		}
 
-		Gx_offset=tempgx/100;//MPU6050_FIFO[3][10];
-		Gy_offset=tempgy/100;//MPU6050_FIFO[4][10];
-		Gz_offset=tempgz/100;//MPU6050_FIFO[5][10];
-		tempax/=100;
-		tempay/=100;
-		tempaz/=100;
+		Gx_offset=tempgx/100;
+		Gy_offset=tempgy/100;
+		Gz_offset=tempgz/100;
+//		tempax/=100;
+//		tempay/=100;
+//		tempaz/=100;
 }
 /**************************实现函数********************************************
 *函数原型:		void MPU6050_setClockSource(uint8_t source)
@@ -302,15 +302,21 @@ void MPU6050_GetMotion6(int16_t* ax, int16_t* ay, int16_t* az, int16_t* gx, int1
     MPU6050_Lastgx=(((int16_t)buffer[8]) << 8) | buffer[9];
     MPU6050_Lastgy=(((int16_t)buffer[10]) << 8) | buffer[11];
     MPU6050_Lastgz=(((int16_t)buffer[12]) << 8) | buffer[13];
-		MPU6050_NewValues(MPU6050_Lastax, MPU6050_Lastay, MPU6050_Lastaz,
-											MPU6050_Lastgx, MPU6050_Lastgy, MPU6050_Lastgz);
-		
-		*ax  =MPU6050_FIFO[0][10];
-		*ay  =MPU6050_FIFO[1][10];
-		*az = MPU6050_FIFO[2][10];
-		*gx  =MPU6050_FIFO[3][10]-Gx_offset;
-		*gy = MPU6050_FIFO[4][10]-Gy_offset;
-		*gz = MPU6050_FIFO[5][10]-Gz_offset;
+//		MPU6050_NewValues(MPU6050_Lastax, MPU6050_Lastay, MPU6050_Lastaz,
+//											MPU6050_Lastgx, MPU6050_Lastgy, MPU6050_Lastgz);
+//		
+//		*ax  =MPU6050_FIFO[0][10];
+//		*ay  =MPU6050_FIFO[1][10];
+//		*az = MPU6050_FIFO[2][10];
+//		*gx  =MPU6050_FIFO[3][10]-Gx_offset;
+//		*gy = MPU6050_FIFO[4][10]-Gy_offset;
+//		*gz = MPU6050_FIFO[5][10]-Gz_offset;
+		*ax = MPU6050_Lastax;
+	  *ay = MPU6050_Lastay;
+	  *az = MPU6050_Lastaz;
+		*gx = MPU6050_Lastgx -Gx_offset;
+		*gy = MPU6050_Lastgy -Gy_offset;
+		*gz = MPU6050_Lastgz -Gz_offset;
 
 }
 /*
